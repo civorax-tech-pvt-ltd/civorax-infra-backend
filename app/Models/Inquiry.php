@@ -1,0 +1,42 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+#[Fillable([
+    'fullname', 'address', 'contact', 'inquiry_type_id', 'contact_channel',
+    'referred_by', 'message', 'status', 'handled_by', 'created_by', 'resolved_at',
+])]
+class Inquiry extends Model
+{
+    use SoftDeletes;
+
+    protected function casts(): array
+    {
+        return ['resolved_at' => 'datetime'];
+    }
+
+    public function inquiryType(): BelongsTo
+    {
+        return $this->belongsTo(InquiryType::class);
+    }
+
+    public function referrer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'referred_by');
+    }
+
+    public function handler(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'handled_by');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+}

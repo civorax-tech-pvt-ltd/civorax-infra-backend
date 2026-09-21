@@ -1,0 +1,124 @@
+<?php
+
+namespace App\Filament\Resources;
+
+use App\Filament\Resources\ProjectDocumentResource\Pages;
+use App\Filament\Resources\ProjectDocumentResource\RelationManagers;
+use App\Models\ProjectDocument;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
+
+class ProjectDocumentResource extends Resource
+{
+    protected static ?string $model = ProjectDocument::class;
+
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+
+    protected static ?string $navigationGroup = 'Projects';
+
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Select::make('project_id')
+                    ->relationship('project', 'title')
+                    ->required(),
+                Forms\Components\TextInput::make('title')
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\Select::make('type')
+                    ->options([
+                        'drawing' => 'Drawing',
+                        'render' => 'Render',
+                        'structural' => 'Structural',
+                        'approval_document' => 'Approval Document',
+                        'other' => 'Other',
+                    ])
+                    ->required(),
+                Forms\Components\FileUpload::make('file_path')
+                    ->required(),
+                Forms\Components\TextInput::make('version')
+                    ->required()
+                    ->numeric()
+                    ->default(1),
+                Forms\Components\Hidden::make('uploaded_by')
+                    ->default(fn () => auth()->id()),
+            ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('project.title')
+                    ->numeric()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('title')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('type')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('file_path')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('version')
+                    ->numeric()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('uploader.name')
+                    ->label('Uploaded By')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('deleted_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                Tables\Filters\TrashedFilter::make(),
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\ForceDeleteBulkAction::make(),
+                    Tables\Actions\RestoreBulkAction::make(),
+                ]),
+            ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListProjectDocuments::route('/'),
+            'create' => Pages\CreateProjectDocument::route('/create'),
+            'edit' => Pages\EditProjectDocument::route('/{record}/edit'),
+        ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
+    }
+}
