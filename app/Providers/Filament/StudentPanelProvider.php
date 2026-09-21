@@ -4,6 +4,9 @@ namespace App\Providers\Filament;
 
 use App\Filament\Auth\PhoneLogin;
 use App\Filament\Student\Auth\StudentRegister;
+use App\Http\Controllers\Student\EnrollController;
+use App\Http\Middleware\EnsureSingleSession;
+use App\Http\Middleware\RedirectForeignPanelSession;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -18,6 +21,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class StudentPanelProvider extends PanelProvider
@@ -55,6 +59,11 @@ class StudentPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+                RedirectForeignPanelSession::class,
+                EnsureSingleSession::class,
+            ])
+            ->authenticatedRoutes(function (Panel $panel) {
+                Route::get('/enroll/{course}', EnrollController::class)->name('enroll');
+            });
     }
 }

@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Filament\Client\Resources\ProjectResource\RelationManagers;
+namespace App\Filament\Student\Resources\EnrollmentResource\RelationManagers;
 
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class PaymentsRelationManager extends RelationManager
+class CoursePaymentsRelationManager extends RelationManager
 {
-    protected static string $relationship = 'payments';
+    protected static string $relationship = 'coursePayments';
 
     protected static ?string $title = 'Payment History';
 
@@ -18,7 +18,6 @@ class PaymentsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('remark')
             ->columns([
-                Tables\Columns\TextColumn::make('milestone.title')->label('Milestone'),
                 Tables\Columns\TextColumn::make('amount')->money('NPR'),
                 Tables\Columns\TextColumn::make('received_at')->date(),
                 Tables\Columns\TextColumn::make('remark'),
@@ -34,8 +33,8 @@ class PaymentsRelationManager extends RelationManager
         return true;
     }
 
-    // Bypass Shield's globally-registered PaymentPolicy (built for the Admin/Team
-    // panels) — this panel already scopes visibility via the owner project.
+    // Bypass Shield's globally-registered CoursePaymentPolicy (built for the Admin/Team
+    // panels) — this panel already scopes visibility via the owner enrollment.
     public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
         return true;

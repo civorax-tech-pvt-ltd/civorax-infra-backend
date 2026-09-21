@@ -37,4 +37,14 @@ class Enrollment extends Model
     {
         return $this->hasMany(ClassSession::class, 'course_id', 'course_id');
     }
+
+    public function coursePayments(): HasMany
+    {
+        return $this->hasMany(CoursePayment::class);
+    }
+
+    public function coursePaymentSubmissions(): HasMany
+    {
+        return $this->hasMany(CoursePaymentSubmission::class);
+    }
 }

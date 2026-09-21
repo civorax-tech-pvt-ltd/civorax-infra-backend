@@ -5,6 +5,7 @@ namespace App\Filament\Student\Resources\EnrollmentResource\RelationManagers;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class ClassSessionsRelationManager extends RelationManager
 {
@@ -29,6 +30,13 @@ class ClassSessionsRelationManager extends RelationManager
     }
 
     public function isReadOnly(): bool
+    {
+        return true;
+    }
+
+    // Bypass Shield's globally-registered ClassSessionPolicy (built for the Admin/Team
+    // panels) — this panel already scopes visibility via the owner enrollment.
+    public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
         return true;
     }

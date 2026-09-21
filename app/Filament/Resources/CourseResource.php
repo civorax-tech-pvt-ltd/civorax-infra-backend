@@ -49,6 +49,16 @@ class CourseResource extends Resource
                     ->numeric()
                     ->prefix('NPR')
                     ->default(0.00),
+                Forms\Components\TextInput::make('discount_fee')
+                    ->label('Discounted Fee (optional)')
+                    ->helperText('If set and lower than the regular fee, the website shows the regular fee struck through with this as the sale price.')
+                    ->numeric()
+                    ->prefix('NPR'),
+                Forms\Components\FileUpload::make('cover_image')
+                    ->label('Cover Image')
+                    ->image()
+                    ->disk('public')
+                    ->directory('course-covers'),
                 Forms\Components\Select::make('status')
                     ->options([
                         'draft' => 'Draft',
@@ -66,6 +76,9 @@ class CourseResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('cover_image')
+                    ->disk('public')
+                    ->square(),
                 Tables\Columns\TextColumn::make('title')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('type')
@@ -74,6 +87,11 @@ class CourseResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('fee')
                     ->money('NPR')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('discount_fee')
+                    ->label('Discount Fee')
+                    ->money('NPR')
+                    ->placeholder('—')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()

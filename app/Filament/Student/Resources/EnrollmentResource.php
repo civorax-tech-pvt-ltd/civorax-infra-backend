@@ -22,7 +22,8 @@ class EnrollmentResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->whereHas('student', fn (Builder $query) => $query->where('user_id', auth()->id()));
+            ->whereHas('student', fn (Builder $query) => $query->where('user_id', auth()->id()))
+            ->with(['course', 'coursePayments']);
     }
 
     public static function form(Form $form): Form
@@ -39,6 +40,13 @@ class EnrollmentResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('course.type')
                     ->label('Mode'),
+                Tables\Columns\TextColumn::make('course.fee')
+                    ->label('Fee')
+                    ->money('NPR'),
+                Tables\Columns\TextColumn::make('paid')
+                    ->label('Paid')
+                    ->state(fn ($record) => $record->coursePayments->sum('amount'))
+                    ->money('NPR'),
                 Tables\Columns\TextColumn::make('enrolled_at')
                     ->date()
                     ->sortable(),
@@ -54,6 +62,8 @@ class EnrollmentResource extends Resource
     {
         return [
             RelationManagers\ClassSessionsRelationManager::class,
+            RelationManagers\CoursePaymentsRelationManager::class,
+            RelationManagers\PaymentSubmissionsRelationManager::class,
         ];
     }
 
@@ -68,5 +78,17 @@ class EnrollmentResource extends Resource
     public static function canCreate(): bool
     {
         return false;
+    }
+
+    // Bypass Shield's globally-registered EnrollmentPolicy (built for the Admin/Team
+    // panels' resource) — this panel already scopes visibility via getEloquentQuery().
+    public static function canViewAny(): bool
+    {
+        return true;
+    }
+
+    public static function canView(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return true;
     }
 }

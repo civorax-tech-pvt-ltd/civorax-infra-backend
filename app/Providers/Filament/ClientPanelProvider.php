@@ -4,6 +4,8 @@ namespace App\Providers\Filament;
 
 use App\Filament\Auth\PhoneLogin;
 use App\Filament\Client\Auth\ClientRegister;
+use App\Http\Middleware\EnsureSingleSession;
+use App\Http\Middleware\RedirectForeignPanelSession;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -55,6 +57,8 @@ class ClientPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                RedirectForeignPanelSession::class,
+                EnsureSingleSession::class,
             ]);
     }
 }

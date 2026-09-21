@@ -5,6 +5,7 @@ namespace App\Filament\Client\Resources\ProjectResource\RelationManagers;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class DocumentsRelationManager extends RelationManager
 {
@@ -34,6 +35,13 @@ class DocumentsRelationManager extends RelationManager
     }
 
     public function isReadOnly(): bool
+    {
+        return true;
+    }
+
+    // Bypass Shield's globally-registered ProjectDocumentPolicy (built for the
+    // Admin/Team panels) — this panel already scopes visibility via the owner project.
+    public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
         return true;
     }

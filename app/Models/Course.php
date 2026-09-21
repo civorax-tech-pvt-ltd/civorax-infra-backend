@@ -8,14 +8,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['title', 'description', 'type', 'duration', 'syllabus', 'fee', 'status', 'created_by'])]
+#[Fillable(['title', 'description', 'type', 'duration', 'syllabus', 'fee', 'cover_image', 'discount_fee', 'status', 'created_by'])]
 class Course extends Model
 {
     use SoftDeletes;
 
     protected function casts(): array
     {
-        return ['fee' => 'decimal:2'];
+        return [
+            'fee' => 'decimal:2',
+            'discount_fee' => 'decimal:2',
+        ];
     }
 
     public function creator(): BelongsTo

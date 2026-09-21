@@ -81,4 +81,16 @@ class ProjectResource extends Resource
     {
         return false;
     }
+
+    // Bypass Shield's globally-registered ProjectPolicy (built for the Admin/Team
+    // panels' resource) — this panel already scopes visibility via getEloquentQuery().
+    public static function canViewAny(): bool
+    {
+        return true;
+    }
+
+    public static function canView(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return true;
+    }
 }

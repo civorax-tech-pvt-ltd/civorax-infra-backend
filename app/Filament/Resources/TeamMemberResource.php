@@ -19,7 +19,7 @@ class TeamMemberResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    protected static ?string $navigationGroup = 'Staff';
+    protected static ?string $navigationGroup = 'Team';
 
     public static function form(Form $form): Form
     {
