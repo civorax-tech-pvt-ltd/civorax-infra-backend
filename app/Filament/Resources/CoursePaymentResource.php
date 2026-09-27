@@ -16,7 +16,7 @@ class CoursePaymentResource extends Resource
 {
     protected static ?string $model = CoursePayment::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-banknotes';
+    protected static ?string $navigationIcon = 'heroicon-o-credit-card';
 
     protected static ?string $navigationGroup = 'Academy';
 

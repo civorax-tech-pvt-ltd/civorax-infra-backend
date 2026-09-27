@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Forms\LocationFields;
 use App\Filament\Resources\Concerns\ScopesToTeamMember;
 use App\Filament\Resources\ProjectResource\Pages;
 use App\Filament\Resources\ProjectResource\RelationManagers;
@@ -9,6 +10,7 @@ use App\Models\Client;
 use App\Models\Project;
 use App\Models\ProjectType;
 use App\Models\TeamMember;
+use App\Notifications\Alerts;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -25,7 +27,7 @@ class ProjectResource extends Resource
 
     protected static ?string $model = Project::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
 
     protected static ?string $navigationGroup = 'Projects';
 
@@ -69,6 +71,10 @@ class ProjectResource extends Resource
                     ->maxLength(255),
                 Forms\Components\TextInput::make('ward_no')
                     ->maxLength(255),
+                LocationFields::make(
+                    defaultRadius: 1000,
+                    description: 'Team members assigned to this project are marked present when they open the team app within this distance of the site.',
+                )->columnSpanFull(),
                 Forms\Components\Select::make('status')
                     ->options(Project::STATUSES)
                     ->required()
@@ -82,7 +88,7 @@ class ProjectResource extends Resource
                 Forms\Components\Select::make('teamMembers')
                     ->label('Team')
                     ->relationship('teamMembers', 'fullname', fn (Builder $query) => static::limitTeamMemberOptions($query))
-                    ->saveRelationshipsUsing(fn (Project $record, $state) => static::syncTeamMembers($record->teamMembers(), $state))
+                    ->saveRelationshipsUsing(fn (Project $record, $state) => Alerts::addedToProject($record, static::syncTeamMembers($record->teamMembers(), $state)))
                     ->multiple()
                     ->searchable()
                     ->preload()
@@ -90,10 +96,15 @@ class ProjectResource extends Resource
                 Forms\Components\TextInput::make('fee')
                     ->label('Contract fee')
                     ->numeric()
-                    ->minValue(0)
                     ->prefix('NPR')
+                    ->minValue(fn (?Project $record): float => $record?->exists ? $record->amountPaid() : 0)
+                    ->validationMessages(['min' => 'The fee cannot be less than what has already been paid (NPR :min).'])
                     ->required(fn (Get $get): bool => ! in_array($get('status'), ['inquiry', 'planning', 'on_hold'], true))
-                    ->helperText('Leave empty until the price is agreed. Accepting a quotation fills it in.'),
+                    ->formatStateUsing(fn ($state, ?Project $record) => $record?->acceptedQuotation()?->total ?? $state)
+                    ->disabled(fn (?Project $record): bool => $record?->acceptedQuotation() !== null)
+                    ->helperText(fn (?Project $record): string => ($accepted = $record?->acceptedQuotation())
+                        ? "Set by accepted {$accepted->label()}. To change the price, create and accept a new quotation."
+                        : 'Leave empty until the price is agreed. Accepting a quotation fills it in.'),
                 Forms\Components\Placeholder::make('balance')
                     ->label('Paid / balance due')
                     ->content(fn (Project $record): string => $record->fee === null
@@ -201,6 +212,7 @@ class ProjectResource extends Resource
             RelationManagers\MilestonesRelationManager::class,
             RelationManagers\TasksRelationManager::class,
             RelationManagers\QuotationsRelationManager::class,
+            RelationManagers\PaymentsRelationManager::class,
         ];
     }
 

@@ -25,7 +25,12 @@ class QuotationsRelationManager extends RelationManager
                     ->default('draft')
                     ->required()
                     ->disabled(fn (?Quotation $record): bool => in_array($record?->status, ['accepted', 'superseded'], true))
-                    ->helperText('Use the Accept button to accept a quotation.'),
+                    ->helperText('"Sent" shows it in the client portal, where the client can accept it or request changes.'),
+                Forms\Components\Placeholder::make('client_request')
+                    ->label('Client requested changes')
+                    ->content(fn (?Quotation $record): string => ($record?->client_note ?? '').' ('.$record?->client_responded_at?->format('M j, Y g:i A').')')
+                    ->visible(fn (?Quotation $record): bool => filled($record?->client_note))
+                    ->columnSpanFull(),
                 Forms\Components\DatePicker::make('valid_until')
                     ->default(now()->addDays(30)),
                 Forms\Components\Hidden::make('created_by')
@@ -109,15 +114,25 @@ class QuotationsRelationManager extends RelationManager
                     ->color(fn (string $state): string => match ($state) {
                         'accepted' => 'success',
                         'sent' => 'info',
+                        'changes_requested' => 'warning',
                         'rejected' => 'danger',
                         default => 'gray',
-                    }),
+                    })
+                    ->description(fn (Quotation $record): ?string => $record->status === 'changes_requested' && filled($record->client_note)
+                        ? 'Client: '.str($record->client_note)->limit(120)
+                        : null)
+                    ->wrap(),
                 Tables\Columns\TextColumn::make('subtotal')->money('NPR'),
                 Tables\Columns\TextColumn::make('discount')->money('NPR')->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('vat_percent')->label('VAT')->suffix('%')->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('total')->money('NPR')->weight('bold'),
                 Tables\Columns\TextColumn::make('valid_until')->date(),
-                Tables\Columns\TextColumn::make('accepted_at')->dateTime()->placeholder('—'),
+                Tables\Columns\TextColumn::make('accepted_at')
+                    ->dateTime()
+                    ->placeholder('—')
+                    ->description(fn (Quotation $record): ?string => $record->acceptedBy
+                        ? 'by '.$record->acceptedBy->name.($record->acceptedBy->client ? ' (client, online)' : '')
+                        : null),
             ])
             ->defaultSort('version', 'desc')
             ->headerActions([
@@ -129,7 +144,7 @@ class QuotationsRelationManager extends RelationManager
                 Tables\Actions\Action::make('accept')
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
-                    ->visible(fn (Quotation $record): bool => in_array($record->status, ['draft', 'sent'], true))
+                    ->visible(fn (Quotation $record): bool => in_array($record->status, ['draft', 'sent', 'changes_requested'], true))
                     ->requiresConfirmation()
                     ->modalHeading(fn (Quotation $record): string => "Accept {$record->label()}?")
                     ->modalDescription(fn (Quotation $record): string => 'The project fee becomes NPR '.number_format((float) $record->total, 2).'. Any earlier accepted quotation is marked superseded.')
@@ -137,6 +152,26 @@ class QuotationsRelationManager extends RelationManager
                         $record->accept();
 
                         Notification::make()->title('Quotation accepted — project fee updated')->success()->send();
+                    }),
+                Tables\Actions\Action::make('undoAcceptance')
+                    ->label('Undo acceptance')
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->color('warning')
+                    ->visible(fn (Quotation $record): bool => $record->status === 'accepted')
+                    ->requiresConfirmation()
+                    ->modalDescription('Use this only if the quotation was accepted by mistake. It goes back to Sent so you can edit or delete it, and the project fee returns to the previously accepted quotation (or becomes empty).')
+                    ->action(function (Quotation $record): void {
+                        $error = $record->undoAcceptanceError();
+
+                        if ($error !== null) {
+                            Notification::make()->title('Cannot undo acceptance')->body($error)->danger()->send();
+
+                            return;
+                        }
+
+                        $record->undoAcceptance();
+
+                        Notification::make()->title('Acceptance undone — project fee updated')->success()->send();
                     }),
                 Tables\Actions\ViewAction::make()
                     ->visible(fn (Quotation $record): bool => in_array($record->status, ['accepted', 'superseded'], true)),

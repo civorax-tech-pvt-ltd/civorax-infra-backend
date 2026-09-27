@@ -16,7 +16,7 @@ class ProjectResource extends Resource
 {
     protected static ?string $model = Project::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
 
     protected static ?string $navigationLabel = 'My Projects';
 
@@ -71,6 +71,7 @@ class ProjectResource extends Resource
             RelationManagers\MilestonesRelationManager::class,
             RelationManagers\DocumentsRelationManager::class,
             RelationManagers\PaymentsRelationManager::class,
+            RelationManagers\PaymentSubmissionsRelationManager::class,
             RelationManagers\QuotationsRelationManager::class,
         ];
     }

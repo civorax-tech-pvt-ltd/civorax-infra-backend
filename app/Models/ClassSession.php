@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\Alerts;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +12,15 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class ClassSession extends Model
 {
     use SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::created(function (ClassSession $session): void {
+            if ($session->status !== 'cancelled' && $session->starts_at?->isFuture()) {
+                Alerts::classScheduled($session);
+            }
+        });
+    }
 
     protected function casts(): array
     {

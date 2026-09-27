@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\Alerts;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -36,6 +37,10 @@ class Task extends Model
 
         static::saved(function (Task $task): void {
             $task->refreshMilestones($task->milestone_id, $task->getOriginal('milestone_id'));
+
+            if ($task->assignee_id !== null && ($task->wasRecentlyCreated || $task->wasChanged('assignee_id'))) {
+                Alerts::taskAssigned($task);
+            }
         });
 
         static::deleted(fn (Task $task) => $task->refreshMilestones($task->milestone_id));

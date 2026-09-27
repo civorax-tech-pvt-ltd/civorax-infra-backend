@@ -2,6 +2,7 @@
 
 namespace App\Filament\Client\Resources\ProjectResource\RelationManagers;
 
+use App\Filament\Resources\ProjectMilestoneResource;
 use App\Models\ProjectMilestone;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -27,7 +28,8 @@ class MilestonesRelationManager extends RelationManager
                     ->formatStateUsing(fn (string $state): string => ProjectMilestone::STATUSES[$state] ?? $state),
                 Tables\Columns\TextColumn::make('target_date')->date(),
                 Tables\Columns\TextColumn::make('completed_at')->date(),
-                Tables\Columns\TextColumn::make('billing_percent')->suffix('%'),
+                Tables\Columns\TextColumn::make('billing_percent')->label('Billing')->suffix('%'),
+                ...ProjectMilestoneResource::billingColumns(),
             ])
             ->defaultSort('sequence')
             ->headerActions([])

@@ -167,6 +167,68 @@ class QuotationsTeamPanelAndDashboardTest extends TestCase
         $this->assertSame('accepted', $second->refresh()->status);
     }
 
+    public function test_an_accepted_quotation_locks_the_fee_and_acceptance_can_be_undone(): void
+    {
+        $project = $this->makeProject(['fee' => null]);
+
+        $first = $project->quotations()->create(['status' => 'sent']);
+        $first->items()->create(['description' => 'Design', 'quantity' => 1, 'unit' => 'lump sum', 'rate' => 20000]);
+        $first->refresh()->accept();
+
+        $second = $project->quotations()->create(['status' => 'sent']);
+        $second->items()->create(['description' => 'Design (revised)', 'quantity' => 1, 'unit' => 'lump sum', 'rate' => 25000]);
+        $second->refresh()->accept();
+
+        // Typing over the fee is ignored while a quotation is accepted.
+        $project->refresh()->update(['fee' => 0]);
+        $this->assertSame('25000.00', $project->refresh()->fee);
+
+        Livewire::test(EditProject::class, ['record' => $project->getRouteKey()])
+            ->assertFormSet(['fee' => '25000.00'])
+            ->assertFormFieldIsDisabled('fee');
+
+        Livewire::test(QuotationsRelationManager::class, ['ownerRecord' => $project, 'pageClass' => EditProject::class])
+            ->callTableAction('undoAcceptance', $second->refresh());
+
+        $this->assertSame('sent', $second->refresh()->status);
+        $this->assertSame('accepted', $first->refresh()->status);
+        $this->assertSame('20000.00', $project->refresh()->fee);
+
+        // Undone quotations can be deleted again.
+        Livewire::test(QuotationsRelationManager::class, ['ownerRecord' => $project, 'pageClass' => EditProject::class])
+            ->assertTableActionVisible('delete', $second)
+            ->callTableAction('delete', $second);
+
+        $this->assertModelMissing($second);
+    }
+
+    public function test_acceptance_cannot_be_undone_once_payments_depend_on_it(): void
+    {
+        $project = $this->makeProject(['fee' => null]);
+        $quotation = $project->quotations()->create(['status' => 'sent']);
+        $quotation->items()->create(['description' => 'Design', 'quantity' => 1, 'unit' => 'lump sum', 'rate' => 20000]);
+        $quotation->refresh()->accept();
+
+        Payment::create(['project_id' => $project->id, 'amount' => 2500, 'received_at' => now(), 'recorded_by' => $this->admin->id]);
+
+        Livewire::test(QuotationsRelationManager::class, ['ownerRecord' => $project, 'pageClass' => EditProject::class])
+            ->callTableAction('undoAcceptance', $quotation);
+
+        $this->assertSame('accepted', $quotation->refresh()->status);
+        $this->assertSame('20000.00', $project->refresh()->fee);
+    }
+
+    public function test_a_typed_fee_cannot_go_below_what_has_been_paid(): void
+    {
+        $project = $this->makeProject(['fee' => 25000]);
+        Payment::create(['project_id' => $project->id, 'amount' => 2500, 'received_at' => now(), 'recorded_by' => $this->admin->id]);
+
+        Livewire::test(EditProject::class, ['record' => $project->getRouteKey()])
+            ->fillForm(['fee' => 0])
+            ->call('save')
+            ->assertHasFormErrors(['fee' => 'min']);
+    }
+
     public function test_the_team_panel_only_shows_a_members_own_projects_and_tasks(): void
     {
         $mine = $this->makeProject(['title' => 'My project']);

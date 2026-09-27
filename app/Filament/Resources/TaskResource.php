@@ -6,6 +6,7 @@ use App\Filament\Resources\Concerns\ScopesToTeamMember;
 use App\Filament\Resources\TaskResource\Pages;
 use App\Models\Task;
 use App\Models\TeamMember;
+use App\Notifications\Alerts;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -23,7 +24,7 @@ class TaskResource extends Resource
 
     protected static ?string $model = Task::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
     protected static ?string $navigationGroup = 'Projects';
 
@@ -89,11 +90,11 @@ class TaskResource extends Resource
                 ->multiple()
                 ->searchable()
                 ->preload()
-                ->saveRelationshipsUsing(fn (Task $record, $state) => static::syncTeamMembers(
+                ->saveRelationshipsUsing(fn (Task $record, $state) => Alerts::addedAsHelper($record, static::syncTeamMembers(
                     $record->members(),
                     $state,
                     exclude: [$record->assignee_id],
-                ))
+                )))
                 ->helperText('Other team members helping. They also see this task in the team panel.'),
             Forms\Components\Select::make('status')
                 ->options(Task::STATUSES)

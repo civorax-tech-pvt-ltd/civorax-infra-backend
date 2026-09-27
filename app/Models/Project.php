@@ -14,7 +14,8 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 #[Fillable([
     'client_id', 'project_type_id', 'title', 'description', 'site_address',
-    'city', 'ward_no', 'status', 'fee', 'start_date', 'estimated_end_date', 'created_by',
+    'city', 'ward_no', 'latitude', 'longitude', 'geofence_radius',
+    'status', 'fee', 'start_date', 'estimated_end_date', 'created_by',
 ])]
 class Project extends Model
 {
@@ -51,6 +52,16 @@ class Project extends Model
      * @var list<string>
      */
     public const MANUAL_STATUSES = ['inquiry', 'on_hold'];
+
+    protected static function booted(): void
+    {
+        // While a quotation is accepted, it alone decides the fee.
+        static::saving(function (Project $project): void {
+            if ($project->exists && $project->isDirty('fee') && ($accepted = $project->acceptedQuotation())) {
+                $project->fee = $accepted->total;
+            }
+        });
+    }
 
     protected function casts(): array
     {
@@ -98,6 +109,63 @@ class Project extends Model
     public function balanceDue(): ?float
     {
         return $this->fee === null ? null : (float) $this->fee - $this->amountPaid();
+    }
+
+    /**
+     * What the client owes today: the billing share of completed milestones minus payments so far.
+     * Without billing percentages, the whole remaining balance counts as due.
+     */
+    public function amountDueNow(): ?float
+    {
+        if ($this->fee === null) {
+            return null;
+        }
+
+        $milestones = $this->milestones()->get(['status', 'billing_percent']);
+
+        if ($milestones->sum('billing_percent') <= 0) {
+            return max(0, $this->balanceDue());
+        }
+
+        $earned = (float) $this->fee * $milestones->where('status', 'completed')->sum('billing_percent') / 100;
+
+        return max(0, round($earned - $this->amountPaid(), 2));
+    }
+
+    /**
+     * Spread everything paid across milestones in sequence: the first milestone's share is
+     * filled first, any extra (overpayment or advance) rolls on to the next, and so on.
+     *
+     * @return array<int, float> milestone id => amount covered
+     */
+    public function milestoneAllocations(?Payment $ignore = null): array
+    {
+        if ($this->fee === null) {
+            return [];
+        }
+
+        $remaining = $this->amountPaid() - ($ignore?->exists && $ignore->project_id === $this->id ? (float) $ignore->amount : 0);
+        $allocations = [];
+
+        foreach ($this->milestones()->orderBy('sequence')->orderBy('id')->get() as $milestone) {
+            $share = $milestone->billing_percent > 0 ? round((float) $this->fee * (float) $milestone->billing_percent / 100, 2) : 0;
+            $covered = (float) max(0, min($share, round($remaining, 2)));
+
+            $allocations[$milestone->id] = $covered;
+            $remaining -= $covered;
+        }
+
+        return $allocations;
+    }
+
+    public function acceptedQuotation(): ?Quotation
+    {
+        return $this->quotations()->where('status', 'accepted')->first();
+    }
+
+    public function pendingSubmissionsTotal(): float
+    {
+        return (float) $this->paymentSubmissions()->where('status', 'pending')->sum('amount');
     }
 
     /**
@@ -238,6 +306,11 @@ class Project extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function paymentSubmissions(): HasMany
+    {
+        return $this->hasMany(ProjectPaymentSubmission::class);
     }
 
     public function quotations(): HasMany

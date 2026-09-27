@@ -41,6 +41,16 @@ class TeamMember extends Model
         $query->whereDoesntHave('user.roles', fn (Builder $query) => $query->where('name', 'super_admin'));
     }
 
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class);
+    }
+
+    public function locationPings(): HasMany
+    {
+        return $this->hasMany(LocationPing::class);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

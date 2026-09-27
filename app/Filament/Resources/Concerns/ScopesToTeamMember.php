@@ -30,14 +30,15 @@ trait ScopesToTeamMember
      *
      * @param  array<int|string>|null  $state
      * @param  array<int|string|null>  $exclude
+     * @return list<int|string> ids of team members newly added
      */
-    public static function syncTeamMembers(BelongsToMany $relation, ?array $state, array $exclude = []): void
+    public static function syncTeamMembers(BelongsToMany $relation, ?array $state, array $exclude = []): array
     {
         $hidden = Filament::getCurrentPanel()?->getId() === 'team'
             ? $relation->getQuery()->clone()->whereHas('user.roles', fn (Builder $query) => $query->where('name', 'super_admin'))->pluck('team_members.id')->all()
             : [];
 
-        $relation->sync(array_values(array_diff(array_unique([...($state ?? []), ...$hidden]), array_filter($exclude))));
+        return $relation->sync(array_values(array_diff(array_unique([...($state ?? []), ...$hidden]), array_filter($exclude))))['attached'];
     }
 
     /**

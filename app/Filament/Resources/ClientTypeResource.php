@@ -16,7 +16,7 @@ class ClientTypeResource extends Resource
 {
     protected static ?string $model = ClientType::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-tag';
 
     protected static ?string $navigationGroup = 'CRM';
 

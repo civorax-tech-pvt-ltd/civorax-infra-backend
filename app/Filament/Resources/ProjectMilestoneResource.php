@@ -22,7 +22,7 @@ class ProjectMilestoneResource extends Resource
 
     protected static ?string $model = ProjectMilestone::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-flag';
 
     protected static ?string $navigationGroup = 'Projects';
 
@@ -110,6 +110,7 @@ class ProjectMilestoneResource extends Resource
                 ->label('Billing')
                 ->suffix('%')
                 ->sortable(),
+            ...static::billingColumns(),
             Tables\Columns\TextColumn::make('target_date')
                 ->date()
                 ->sortable()
@@ -118,6 +119,39 @@ class ProjectMilestoneResource extends Resource
                 ->date()
                 ->sortable()
                 ->toggleable(isToggledHiddenByDefault: true),
+        ];
+    }
+
+    /**
+     * The milestone's share of the fee in NPR and whether it has been paid; shared with the client portal.
+     *
+     * @return array<Tables\Columns\Column>
+     */
+    public static function billingColumns(): array
+    {
+        return [
+            Tables\Columns\TextColumn::make('billing_amount')
+                ->label('Amount')
+                ->state(fn (ProjectMilestone $record): ?float => $record->billingAmount())
+                ->money('NPR')
+                ->placeholder('—'),
+            Tables\Columns\TextColumn::make('payment_state')
+                ->label('Payment')
+                ->state(fn (ProjectMilestone $record): ?string => $record->paymentState())
+                ->badge()
+                ->color(fn (?string $state): string => match ($state) {
+                    'Paid' => 'success',
+                    'Paid in advance', 'Part paid in advance' => 'info',
+                    'Part paid' => 'warning',
+                    default => 'gray',
+                })
+                ->description(fn (ProjectMilestone $record): ?string => match (true) {
+                    $record->billingAmount() === null || $record->amountLeft() <= 0 => null,
+                    $record->status === 'completed' => 'Due: NPR '.number_format((float) $record->amountLeft(), 2),
+                    $record->amountPaid() > 0 => 'Covered: NPR '.number_format($record->amountPaid(), 2),
+                    default => null,
+                })
+                ->placeholder('—'),
         ];
     }
 
@@ -130,9 +164,12 @@ class ProjectMilestoneResource extends Resource
             ->visible(fn (ProjectMilestone $record): bool => $record->isReadyToComplete())
             ->requiresConfirmation()
             ->modalHeading('Mark milestone complete?')
-            ->modalDescription(fn (ProjectMilestone $record): string => $record->billing_percent > 0
-                ? "All tasks are done. Completing it makes its {$record->billing_percent}% billing due."
-                : 'All tasks are done.')
+            ->modalDescription(fn (ProjectMilestone $record): string => match (true) {
+                $record->billingAmount() !== null => 'All tasks are done. Completing it makes NPR '.number_format($record->billingAmount(), 2)
+                    ." ({$record->billing_percent}% of the fee) due from the client.",
+                $record->billing_percent > 0 => "All tasks are done. Its {$record->billing_percent}% billing becomes due once the project fee is set.",
+                default => 'All tasks are done.',
+            })
             ->action(fn (ProjectMilestone $record) => $record->update(['status' => 'completed']));
     }
 

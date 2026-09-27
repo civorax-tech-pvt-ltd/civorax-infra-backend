@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Auth\PhoneLogin;
 use App\Http\Middleware\EnsureSingleSession;
 use App\Http\Middleware\RedirectForeignPanelSession;
+use App\Providers\Filament\Concerns\AppliesBranding;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -14,7 +15,6 @@ use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -24,26 +24,21 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
 {
+    use AppliesBranding;
+
     public function panel(Panel $panel): Panel
     {
-        return $panel
+        return $this->applyBranding($panel, Color::Amber, 'Admin')
             ->default()
             ->id('admin')
             ->path('admin')
             ->login(PhoneLogin::class)
-            ->colors([
-                'primary' => Color::Amber,
-            ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 Pages\Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
-            ->widgets([
-                Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
-            ])
             ->navigationGroups([
                 'CRM',
                 'Projects',

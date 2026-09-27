@@ -4,6 +4,17 @@ use App\Models\Project;
 use App\Models\ProjectMilestone;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
+
+Schedule::command('attendance:maintain')
+    ->dailyAt('01:00')
+    ->timezone(config('app.business_timezone'))
+    ->withoutOverlapping();
+
+Schedule::command('tasks:send-reminders')
+    ->dailyAt('08:00')
+    ->timezone(config('app.business_timezone'))
+    ->withoutOverlapping();
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());

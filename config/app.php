@@ -68,6 +68,13 @@ return [
     'timezone' => 'UTC',
 
     /*
+    | Local timezone of the business. Times are stored in UTC; this decides which calendar
+    | day attendance belongs to and how attendance times are shown.
+    */
+
+    'business_timezone' => env('APP_BUSINESS_TIMEZONE', 'Asia/Kathmandu'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------

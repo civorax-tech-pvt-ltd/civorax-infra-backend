@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Filament\Resources\CoursePaymentSubmissionResource;
+use App\Notifications\Alerts;
+use App\Notifications\NotifyAdmins;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +14,19 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class CoursePaymentSubmission extends Model
 {
     use SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::created(function (CoursePaymentSubmission $submission): void {
+            NotifyAdmins::send(
+                title: 'Course payment submitted: NPR '.number_format((float) $submission->amount, 2),
+                body: "{$submission->enrollment?->student?->fullname} — {$submission->enrollment?->course?->title}. Ref: {$submission->transaction_reference}.",
+                url: CoursePaymentSubmissionResource::getUrl(panel: 'admin'),
+                icon: 'heroicon-o-academic-cap',
+                color: 'warning',
+            );
+        });
+    }
 
     protected function casts(): array
     {
@@ -47,6 +63,8 @@ class CoursePaymentSubmission extends Model
             'review_note' => $note,
         ])->save();
 
+        Alerts::coursePaymentVerified($payment);
+
         return $payment;
     }
 
@@ -58,5 +76,7 @@ class CoursePaymentSubmission extends Model
             'reviewed_at' => now(),
             'review_note' => $note,
         ])->save();
+
+        Alerts::coursePaymentRejected($this);
     }
 }
