@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             LookupTypesSeeder::class,
             SuperAdminSeeder::class,
+            MilestoneTemplateSeeder::class,
         ]);
     }
 }

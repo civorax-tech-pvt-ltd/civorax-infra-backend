@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -30,6 +31,14 @@ class TeamMember extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()->logOnlyDirty();
+    }
+
+    /**
+     * Team members who are not super admins, i.e. staff that other staff may assign work to.
+     */
+    public function scopeWithoutSuperAdmins(Builder $query): void
+    {
+        $query->whereDoesntHave('user.roles', fn (Builder $query) => $query->where('name', 'super_admin'));
     }
 
     public function user(): BelongsTo

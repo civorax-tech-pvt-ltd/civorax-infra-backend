@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ClassSessionResource\Pages;
-use App\Filament\Resources\ClassSessionResource\RelationManagers;
 use App\Models\ClassSession;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -20,6 +19,8 @@ class ClassSessionResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static ?string $navigationGroup = 'Academy';
+
+    protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
     {

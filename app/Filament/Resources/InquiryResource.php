@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\InquiryResource\Pages;
-use App\Filament\Resources\InquiryResource\RelationManagers;
 use App\Models\Inquiry;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -20,6 +19,8 @@ class InquiryResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static ?string $navigationGroup = 'CRM';
+
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {

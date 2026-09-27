@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Forms\LoginAccountSection;
 use App\Filament\Resources\ClientResource\Pages;
-use App\Filament\Resources\ClientResource\RelationManagers;
 use App\Models\Client;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -21,16 +21,13 @@ class ClientResource extends Resource
 
     protected static ?string $navigationGroup = 'CRM';
 
+    protected static ?int $navigationSort = 2;
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('user_id')
-                    ->relationship('user', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->unique(ignoreRecord: true),
+                LoginAccountSection::make('contact person'),
                 Forms\Components\TextInput::make('company_name')
                     ->maxLength(255),
                 Forms\Components\TextInput::make('contact_person')

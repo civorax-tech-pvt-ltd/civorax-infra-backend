@@ -2,6 +2,7 @@
 
 namespace App\Filament\Client\Resources\ProjectResource\RelationManagers;
 
+use App\Models\ProjectMilestone;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -20,7 +21,10 @@ class MilestonesRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\TextColumn::make('sequence')->sortable(),
                 Tables\Columns\TextColumn::make('title'),
-                Tables\Columns\TextColumn::make('status')->badge(),
+                Tables\Columns\ViewColumn::make('progress')->view('filament.components.progress-bar'),
+                Tables\Columns\TextColumn::make('status')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => ProjectMilestone::STATUSES[$state] ?? $state),
                 Tables\Columns\TextColumn::make('target_date')->date(),
                 Tables\Columns\TextColumn::make('completed_at')->date(),
                 Tables\Columns\TextColumn::make('billing_percent')->suffix('%'),

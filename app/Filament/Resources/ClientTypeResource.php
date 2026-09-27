@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ClientTypeResource\Pages;
-use App\Filament\Resources\ClientTypeResource\RelationManagers;
 use App\Models\ClientType;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -20,6 +19,8 @@ class ClientTypeResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static ?string $navigationGroup = 'CRM';
+
+    protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
     {

@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Forms\LoginAccountSection;
 use App\Filament\Resources\StudentResource\Pages;
-use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\Student;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -21,16 +21,13 @@ class StudentResource extends Resource
 
     protected static ?string $navigationGroup = 'Academy';
 
+    protected static ?int $navigationSort = 3;
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('user_id')
-                    ->relationship('user', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->unique(ignoreRecord: true),
+                LoginAccountSection::make('full name'),
                 Forms\Components\TextInput::make('fullname')
                     ->required()
                     ->maxLength(255),

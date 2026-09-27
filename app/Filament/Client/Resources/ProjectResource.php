@@ -10,6 +10,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class ProjectResource extends Resource
 {
@@ -41,9 +42,13 @@ class ProjectResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
+                    ->formatStateUsing(fn (string $state): string => Project::STATUSES[$state] ?? $state)
                     ->searchable(),
+                Tables\Columns\ViewColumn::make('progress')
+                    ->view('filament.components.progress-bar'),
                 Tables\Columns\TextColumn::make('fee')
                     ->money('NPR')
+                    ->placeholder('To be quoted')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('estimated_end_date')
                     ->date()
@@ -66,6 +71,7 @@ class ProjectResource extends Resource
             RelationManagers\MilestonesRelationManager::class,
             RelationManagers\DocumentsRelationManager::class,
             RelationManagers\PaymentsRelationManager::class,
+            RelationManagers\QuotationsRelationManager::class,
         ];
     }
 
@@ -89,7 +95,7 @@ class ProjectResource extends Resource
         return true;
     }
 
-    public static function canView(\Illuminate\Database\Eloquent\Model $record): bool
+    public static function canView(Model $record): bool
     {
         return true;
     }

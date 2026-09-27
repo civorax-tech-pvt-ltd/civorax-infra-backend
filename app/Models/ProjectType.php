@@ -21,4 +21,9 @@ class ProjectType extends Model
     {
         return $this->hasMany(Project::class);
     }
+
+    public function milestoneTemplates(): HasMany
+    {
+        return $this->hasMany(MilestoneTemplate::class)->orderBy('sequence');
+    }
 }

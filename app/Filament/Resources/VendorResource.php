@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\VendorResource\Pages;
-use App\Filament\Resources\VendorResource\RelationManagers;
 use App\Models\Vendor;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -20,6 +19,8 @@ class VendorResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static ?string $navigationGroup = 'Projects';
+
+    protected static ?int $navigationSort = 5;
 
     public static function form(Form $form): Form
     {

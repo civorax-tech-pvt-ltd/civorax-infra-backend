@@ -2,9 +2,10 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\Concerns\ScopesToTeamMember;
 use App\Filament\Resources\ProjectDocumentResource\Pages;
-use App\Filament\Resources\ProjectDocumentResource\RelationManagers;
 use App\Models\ProjectDocument;
+use App\Models\TeamMember;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -15,11 +16,15 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ProjectDocumentResource extends Resource
 {
+    use ScopesToTeamMember;
+
     protected static ?string $model = ProjectDocument::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static ?string $navigationGroup = 'Projects';
+
+    protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form
     {
@@ -116,9 +121,9 @@ class ProjectDocumentResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
-            ->withoutGlobalScopes([
-                SoftDeletingScope::class,
-            ]);
+        return static::scopeToTeamMember(
+            parent::getEloquentQuery()->withoutGlobalScopes([SoftDeletingScope::class]),
+            fn (Builder $query, TeamMember $teamMember) => $query->whereHas('project', fn (Builder $query) => $query->visibleToTeamMember($teamMember)),
+        );
     }
 }

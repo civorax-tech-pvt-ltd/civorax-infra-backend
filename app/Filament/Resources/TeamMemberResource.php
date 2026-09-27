@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Forms\LoginAccountSection;
 use App\Filament\Resources\TeamMemberResource\Pages;
-use App\Filament\Resources\TeamMemberResource\RelationManagers;
 use App\Models\TeamMember;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Spatie\Permission\Models\Role;
 
 class TeamMemberResource extends Resource
 {
@@ -25,35 +26,7 @@ class TeamMemberResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('user_id')
-                    ->relationship('user', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->unique(ignoreRecord: true)
-                    ->createOptionForm([
-                        Forms\Components\TextInput::make('name')
-                            ->required()
-                            ->maxLength(255),
-                        Forms\Components\TextInput::make('phone')
-                            ->label('Phone number')
-                            ->tel()
-                            ->required()
-                            ->unique('users', 'phone'),
-                        Forms\Components\TextInput::make('email')
-                            ->label('Email address (optional)')
-                            ->email()
-                            ->maxLength(255)
-                            ->unique('users', 'email'),
-                        Forms\Components\TextInput::make('password')
-                            ->password()
-                            ->revealable()
-                            ->required()
-                            ->minLength(8),
-                    ])
-                    ->createOptionUsing(function (array $data) {
-                        return \App\Models\User::create($data)->getKey();
-                    }),
+                LoginAccountSection::make('full name'),
                 Forms\Components\TextInput::make('fullname')
                     ->required()
                     ->maxLength(255),
@@ -68,9 +41,14 @@ class TeamMemberResource extends Resource
                 Forms\Components\TextInput::make('marital_status')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('national_id_path')
-                    ->required()
-                    ->maxLength(255),
+                Forms\Components\FileUpload::make('national_id_path')
+                    ->label('National ID')
+                    ->disk('local')
+                    ->directory('team-members/national-ids')
+                    ->visibility('private')
+                    ->acceptedFileTypes(['image/*', 'application/pdf'])
+                    ->maxSize(5120)
+                    ->required(),
                 Forms\Components\TextInput::make('bank_name')
                     ->required()
                     ->maxLength(255),
@@ -85,7 +63,7 @@ class TeamMemberResource extends Resource
                 Forms\Components\Select::make('roles')
                     ->label('Roles')
                     ->multiple()
-                    ->options(fn () => \Spatie\Permission\Models\Role::query()->pluck('name', 'id'))
+                    ->options(fn () => Role::query()->pluck('name', 'id'))
                     ->helperText('Controls which admin screens this team member can access.')
                     ->dehydrated(false),
             ]);

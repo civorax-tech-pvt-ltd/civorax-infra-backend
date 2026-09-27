@@ -3,7 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProjectTypeResource\Pages;
-use App\Filament\Resources\ProjectTypeResource\RelationManagers;
+use App\Models\Project;
 use App\Models\ProjectType;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -21,6 +21,8 @@ class ProjectTypeResource extends Resource
 
     protected static ?string $navigationGroup = 'Projects';
 
+    protected static ?int $navigationSort = 6;
+
     public static function form(Form $form): Form
     {
         return $form
@@ -35,6 +37,51 @@ class ProjectTypeResource extends Resource
                     ->columnSpanFull(),
                 Forms\Components\Toggle::make('is_active')
                     ->required(),
+                Forms\Components\Section::make('Milestone template')
+                    ->description('New projects of this type start with these milestones and tasks. Drag to reorder.')
+                    ->schema([
+                        Forms\Components\Repeater::make('milestoneTemplates')
+                            ->hiddenLabel()
+                            ->relationship()
+                            ->orderColumn('sequence')
+                            ->collapsible()
+                            ->collapsed(fn (string $operation): bool => $operation === 'edit')
+                            ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
+                            ->addActionLabel('Add milestone')
+                            ->columns(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('title')
+                                    ->required()
+                                    ->maxLength(255),
+                                Forms\Components\Select::make('phase')
+                                    ->options(Project::PHASES),
+                                Forms\Components\TextInput::make('billing_percent')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->maxValue(100)
+                                    ->suffix('%'),
+                                Forms\Components\Repeater::make('tasks')
+                                    ->relationship()
+                                    ->orderColumn('sort')
+                                    ->addActionLabel('Add task')
+                                    ->columns(4)
+                                    ->columnSpanFull()
+                                    ->schema([
+                                        Forms\Components\TextInput::make('title')
+                                            ->required()
+                                            ->maxLength(255)
+                                            ->columnSpan(3),
+                                        Forms\Components\TextInput::make('weight')
+                                            ->numeric()
+                                            ->integer()
+                                            ->minValue(1)
+                                            ->maxValue(10)
+                                            ->default(1)
+                                            ->required(),
+                                    ]),
+                            ]),
+                    ])
+                    ->columnSpanFull(),
             ]);
     }
 

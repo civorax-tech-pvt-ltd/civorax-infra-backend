@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\EnrollmentResource\Pages;
-use App\Filament\Resources\EnrollmentResource\RelationManagers;
 use App\Models\Enrollment;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -20,6 +19,8 @@ class EnrollmentResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static ?string $navigationGroup = 'Academy';
+
+    protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form
     {

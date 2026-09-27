@@ -2,12 +2,15 @@
 
 namespace App\Filament\Resources\StudentResource\Pages;
 
+use App\Filament\Resources\Concerns\ManagesLoginAccount;
 use App\Filament\Resources\StudentResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
 class EditStudent extends EditRecord
 {
+    use ManagesLoginAccount;
+
     protected static string $resource = StudentResource::class;
 
     protected function getHeaderActions(): array
@@ -17,5 +20,15 @@ class EditStudent extends EditRecord
             Actions\ForceDeleteAction::make(),
             Actions\RestoreAction::make(),
         ];
+    }
+
+    protected function accountNameField(): string
+    {
+        return 'fullname';
+    }
+
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        return $this->fillLoginAccount($data);
     }
 }

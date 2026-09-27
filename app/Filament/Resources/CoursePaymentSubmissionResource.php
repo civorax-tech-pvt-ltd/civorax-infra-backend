@@ -21,6 +21,8 @@ class CoursePaymentSubmissionResource extends Resource
 
     protected static ?string $navigationGroup = 'Academy';
 
+    protected static ?int $navigationSort = 5;
+
     protected static ?string $navigationLabel = 'Payment Submissions';
 
     public static function getNavigationBadge(): ?string

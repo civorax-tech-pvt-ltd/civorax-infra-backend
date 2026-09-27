@@ -19,6 +19,8 @@ class ManagePaymentSettings extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'Academy';
 
+    protected static ?int $navigationSort = 7;
+
     protected static ?string $navigationLabel = 'Payment Settings';
 
     protected static string $view = 'filament.pages.manage-payment-settings';

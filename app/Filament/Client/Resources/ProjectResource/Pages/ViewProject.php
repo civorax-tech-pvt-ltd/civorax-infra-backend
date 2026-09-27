@@ -3,6 +3,7 @@
 namespace App\Filament\Client\Resources\ProjectResource\Pages;
 
 use App\Filament\Client\Resources\ProjectResource;
+use App\Models\Project;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Pages\ViewRecord;
@@ -17,7 +18,12 @@ class ViewProject extends ViewRecord
             ->schema([
                 TextEntry::make('title'),
                 TextEntry::make('projectType.name')->label('Type'),
-                TextEntry::make('description')->columnSpanFull(),
+                TextEntry::make('description')
+                    ->label('Scope of work')
+                    ->state(fn (Project $record): string => $record->descriptionHtml())
+                    ->html()
+                    ->prose()
+                    ->columnSpanFull(),
                 TextEntry::make('site_address'),
                 TextEntry::make('city'),
                 TextEntry::make('ward_no')->label('Ward No.'),

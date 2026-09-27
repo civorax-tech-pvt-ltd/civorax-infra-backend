@@ -20,6 +20,25 @@ class Client extends Model
         return LogOptions::defaults()->logOnlyDirty();
     }
 
+    /**
+     * Columns a client picker searches, so same-named clients can be found by phone, company or address.
+     *
+     * @var list<string>
+     */
+    public const SEARCH_COLUMNS = ['contact_person', 'company_name', 'contact', 'address'];
+
+    /**
+     * "Name — phone · company · address", to tell same-named clients apart in pickers.
+     */
+    public function selectLabel(): string
+    {
+        $details = array_filter([$this->contact, $this->company_name, $this->address]);
+
+        return $details === []
+            ? $this->contact_person
+            : $this->contact_person.' — '.implode(' · ', $details);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

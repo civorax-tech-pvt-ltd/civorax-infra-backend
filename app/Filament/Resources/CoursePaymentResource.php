@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CoursePaymentResource\Pages;
-use App\Filament\Resources\CoursePaymentResource\RelationManagers;
 use App\Models\CoursePayment;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -20,6 +19,8 @@ class CoursePaymentResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
     protected static ?string $navigationGroup = 'Academy';
+
+    protected static ?int $navigationSort = 6;
 
     protected static ?string $navigationLabel = 'Course Payments';
 
