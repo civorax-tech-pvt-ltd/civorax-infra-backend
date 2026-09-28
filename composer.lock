@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "82651b69b32ea257e412fd83b42b5777",
+    "content-hash": "b0f22cab0eee6d595925063bb3949526",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -70,6 +70,77 @@
                 "source": "https://github.com/AnourValar/eloquent-serialize/tree/1.3.12"
             },
             "time": "2026-09-13T06:25:37+00:00"
+        },
+        {
+            "name": "anuzpandey/laravel-nepali-date",
+            "version": "3.3.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/anuzpandey/laravel-nepali-date.git",
+                "reference": "026c7ceda53a8f482c5e22c162f54677d3c71c1a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/anuzpandey/laravel-nepali-date/zipball/026c7ceda53a8f482c5e22c162f54677d3c71c1a",
+                "reference": "026c7ceda53a8f482c5e22c162f54677d3c71c1a",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/contracts": "^11.0|^12.0|^13.0",
+                "php": "^8.2|^8.3",
+                "spatie/laravel-package-tools": "^1.14.0"
+            },
+            "require-dev": {
+                "larastan/larastan": "^2.0 || ^3.0",
+                "laravel/pint": "^1.0",
+                "nunomaduro/collision": "^7.8 || ^8.0",
+                "orchestra/testbench": "^9.0 || ^10.0 || ^11.0",
+                "pestphp/pest": "^2.20 || ^3.8 || ^4.0",
+                "pestphp/pest-plugin-arch": "^2.0 || ^3.0 || ^4.0",
+                "pestphp/pest-plugin-laravel": "^2.0 || ^3.0 || ^4.0",
+                "phpstan/phpstan": "^1.12.17 || ^2.1"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Anuzpandey\\LaravelNepaliDate\\LaravelNepaliDateServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "files": [
+                    "src/Helper/helper.php"
+                ],
+                "psr-4": {
+                    "Anuzpandey\\LaravelNepaliDate\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "AnuzPandey",
+                    "email": "anuzbvbmaniac123@gmail.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A Laravel Package to convert English Date (A.D.) to Nepali Date (B.S.) and vice-versa.",
+            "homepage": "https://laravel-nepali-date.anuzpandey.com",
+            "keywords": [
+                "anuzpandey",
+                "laravel",
+                "laravel-nepali-date",
+                "nepali-date",
+                "nepali-date-converter"
+            ],
+            "support": {
+                "issues": "https://github.com/anuzpandey/laravel-nepali-date/issues",
+                "source": "https://github.com/anuzpandey/laravel-nepali-date/tree/3.3.0"
+            },
+            "time": "2026-04-28T13:35:44+00:00"
         },
         {
             "name": "bezhansalleh/filament-shield",

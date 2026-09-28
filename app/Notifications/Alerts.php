@@ -4,7 +4,9 @@ namespace App\Notifications;
 
 use App\Filament\Client\Resources\ProjectResource as ClientProjectResource;
 use App\Filament\Resources\InquiryResource;
+use App\Filament\Resources\MusterRollResource;
 use App\Filament\Resources\ProjectResource;
+use App\Filament\Resources\SiteReportResource;
 use App\Filament\Resources\TaskResource;
 use App\Filament\Student\Resources\EnrollmentResource as StudentEnrollmentResource;
 use App\Models\ClassSession;
@@ -12,12 +14,14 @@ use App\Models\CoursePayment;
 use App\Models\CoursePaymentSubmission;
 use App\Models\Enrollment;
 use App\Models\Inquiry;
+use App\Models\MusterRoll;
 use App\Models\Payment;
 use App\Models\Project;
 use App\Models\ProjectDocument;
 use App\Models\ProjectMilestone;
 use App\Models\ProjectPaymentSubmission;
 use App\Models\Quotation;
+use App\Models\SiteReport;
 use App\Models\Task;
 use App\Models\TeamMember;
 use App\Models\User;
@@ -30,7 +34,7 @@ class Alerts
 {
     /**
      * Client portal project page, optionally on one of its tabs
-     * (0 milestones, 1 documents, 2 payments, 3 payment submissions, 4 quotations).
+     * (0 milestones, 1 documents, 2 payments, 3 payment submissions, 4 quotations, 5 site diary).
      */
     protected static function clientProjectUrl(Project $project, ?int $tab = null): string
     {
@@ -193,6 +197,96 @@ class Alerts
             'heroicon-o-inbox-arrow-down',
             'info',
         );
+    }
+
+    // ── Site ──────────────────────────────────────────────────────────────────
+
+    public static function musterRollSubmitted(MusterRoll $roll): void
+    {
+        static::notifySiteApprovers(
+            "Muster roll to approve: {$roll->label()}",
+            "{$roll->project->title} · {$roll->lines()->count()} labourers · ".static::money($roll->totalWage()),
+            fn (string $panel): string => MusterRollResource::getUrl('view', ['record' => $roll], panel: $panel),
+            'heroicon-o-clipboard-document-check',
+        );
+    }
+
+    public static function musterRollReviewed(MusterRoll $roll): void
+    {
+        $approved = $roll->status === 'approved';
+
+        Alert::send(
+            $roll->preparer,
+            ($approved ? 'Muster roll approved: ' : 'Muster roll returned: ').$roll->label(),
+            $roll->project->title.($roll->review_note ? " · {$roll->review_note}" : ''),
+            MusterRollResource::getUrl('view', ['record' => $roll], panel: 'team'),
+            $approved ? 'heroicon-o-check-circle' : 'heroicon-o-arrow-uturn-left',
+            $approved ? 'success' : 'warning',
+        );
+    }
+
+    public static function siteReportSubmitted(SiteReport $report): void
+    {
+        static::notifySiteApprovers(
+            'Site report to review: '.$report->date->format('M j'),
+            "{$report->project->title} · ".str(strip_tags($report->work_done))->limit(100),
+            fn (string $panel): string => SiteReportResource::getUrl('view', ['record' => $report], panel: $panel),
+            'heroicon-o-document-magnifying-glass',
+        );
+    }
+
+    public static function siteReportReviewed(SiteReport $report): void
+    {
+        $approved = $report->status === 'approved';
+
+        Alert::send(
+            $report->submitter,
+            ($approved ? 'Site report approved: ' : 'Site report returned: ').$report->date->format('M j'),
+            $report->project->title.($report->review_note ? " · {$report->review_note}" : ''),
+            SiteReportResource::getUrl('view', ['record' => $report], panel: 'team'),
+            $approved ? 'heroicon-o-check-circle' : 'heroicon-o-arrow-uturn-left',
+            $approved ? 'success' : 'warning',
+        );
+    }
+
+    public static function siteReportPublished(SiteReport $report): void
+    {
+        Alert::send(
+            $report->project->client?->user,
+            'Site update: '.$report->date->format('l, M j'),
+            "{$report->project->title} · ".str(strip_tags($report->work_done))->limit(120),
+            static::clientProjectUrl($report->project, 5),
+            'heroicon-o-camera',
+            'info',
+        );
+    }
+
+    /**
+     * @param  Collection<int, TeamMember>  $teamMembers
+     */
+    public static function siteReportReminder(Project $project, Collection $teamMembers): void
+    {
+        Alert::send(
+            $teamMembers->pluck('user'),
+            "Today's site report is missing",
+            "{$project->title}. Please mark labour attendance and submit the daily report before you leave.",
+            SiteReportResource::getUrl('create', panel: 'team'),
+            'heroicon-o-clock',
+            'warning',
+        );
+    }
+
+    /**
+     * Super admins get admin panel links; other approvers (roles granted the power) get team panel links.
+     *
+     * @param  \Closure(string): string  $url
+     */
+    protected static function notifySiteApprovers(string $title, string $body, \Closure $url, string $icon): void
+    {
+        [$admins, $others] = User::withSitePower('approve_site_records')->partition(fn (User $user): bool => $user->hasRole('super_admin'));
+
+        Alert::send($admins, $title, $body, $url('admin'), $icon, 'warning');
+        Alert::send($others, $title, $body, $url('team'), $icon, 'warning');
     }
 
     // ── Student ───────────────────────────────────────────────────────────────

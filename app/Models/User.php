@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'email', 'phone', 'password'])]
@@ -42,6 +43,29 @@ class User extends Authenticatable implements FilamentUser
     public function teamMember(): HasOne
     {
         return $this->hasOne(TeamMember::class);
+    }
+
+    /**
+     * Site approval powers (approve_site_records, pay_labour_wages): super admins, or roles granted them.
+     */
+    public function hasSitePower(string $permission): bool
+    {
+        return $this->hasRole('super_admin') || $this->can($permission);
+    }
+
+    /**
+     * Users holding a site power, e.g. everyone who should review a submitted muster roll.
+     *
+     * @return Collection<int, User>
+     */
+    public static function withSitePower(string $permission): Collection
+    {
+        return static::query()
+            ->where(fn ($query) => $query
+                ->whereHas('roles', fn ($query) => $query->where('name', 'super_admin'))
+                ->orWhereHas('roles.permissions', fn ($query) => $query->where('name', $permission))
+                ->orWhereHas('permissions', fn ($query) => $query->where('name', $permission)))
+            ->get();
     }
 
     public function canAccessPanel(Panel $panel): bool

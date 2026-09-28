@@ -73,6 +73,7 @@ class ProjectResource extends Resource
             RelationManagers\PaymentsRelationManager::class,
             RelationManagers\PaymentSubmissionsRelationManager::class,
             RelationManagers\QuotationsRelationManager::class,
+            RelationManagers\SiteReportsRelationManager::class,
         ];
     }
 

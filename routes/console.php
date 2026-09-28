@@ -16,6 +16,11 @@ Schedule::command('tasks:send-reminders')
     ->timezone(config('app.business_timezone'))
     ->withoutOverlapping();
 
+Schedule::command('site:send-reminders')
+    ->dailyAt(config('site.reminder_time'))
+    ->timezone(config('app.business_timezone'))
+    ->withoutOverlapping();
+
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');

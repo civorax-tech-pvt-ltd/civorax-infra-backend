@@ -84,6 +84,21 @@ class Project extends Model
     }
 
     /**
+     * Sites a user may record labour, muster rolls and site reports for:
+     * all of them for super admins and site approvers, otherwise the team member's own projects.
+     */
+    public function scopeSiteAccessibleBy(Builder $query, ?User $user): void
+    {
+        if ($user?->hasSitePower('approve_site_records')) {
+            return;
+        }
+
+        $teamMember = $user?->teamMember;
+
+        $teamMember ? $query->visibleToTeamMember($teamMember) : $query->whereRaw('1 = 0');
+    }
+
+    /**
      * Projects whose work is still going on.
      */
     public function scopeActive(Builder $query): void
@@ -316,5 +331,25 @@ class Project extends Model
     public function quotations(): HasMany
     {
         return $this->hasMany(Quotation::class)->orderByDesc('version');
+    }
+
+    public function labourAttendances(): HasMany
+    {
+        return $this->hasMany(LabourAttendance::class);
+    }
+
+    public function musterRolls(): HasMany
+    {
+        return $this->hasMany(MusterRoll::class);
+    }
+
+    public function wagePayments(): HasMany
+    {
+        return $this->hasMany(WagePayment::class);
+    }
+
+    public function siteReports(): HasMany
+    {
+        return $this->hasMany(SiteReport::class);
     }
 }

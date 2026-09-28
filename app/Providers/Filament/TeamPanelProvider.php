@@ -11,6 +11,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationItem;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -46,11 +47,19 @@ class TeamPanelProvider extends PanelProvider
             ->navigationGroups([
                 'CRM',
                 'Projects',
+                'Site',
                 'Finance',
                 'Academy',
                 'Team',
             ])
             ->collapsibleNavigationGroups(true)
+            ->navigationItems([
+                NavigationItem::make('Site app (offline)')
+                    ->url(fn (): string => route('site.app'), shouldOpenInNewTab: true)
+                    ->icon('heroicon-o-device-phone-mobile')
+                    ->group('Site')
+                    ->sort(0),
+            ])
             ->renderHook(
                 PanelsRenderHook::USER_MENU_BEFORE,
                 fn (): string => auth()->user()?->teamMember ? Blade::render('<livewire:attendance-tracker />') : '',
