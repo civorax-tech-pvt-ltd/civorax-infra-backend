@@ -134,14 +134,14 @@ class LabourerResource extends Resource
                     ->placeholder('Direct'),
                 Tables\Columns\TextColumn::make('balance')
                     ->label('Wages due')
-                    ->state(fn (Labourer $record): float => max(0, (float) $record->account_balance))
+                    ->state(fn (Labourer $record): float => max(0, static::balanceOf($record)))
                     ->money('NPR')
                     ->color(fn ($state): ?string => $state > 0 ? 'danger' : 'gray')
                     ->sortable(query: fn (Builder $query, string $direction) => $query->orderByRaw(Labourer::balanceSql().' '.($direction === 'desc' ? 'desc' : 'asc')))
                     ->visible(fn (): bool => static::canSeeWages()),
                 Tables\Columns\TextColumn::make('advance')
                     ->label('Advance held')
-                    ->state(fn (Labourer $record): float => max(0, -(float) $record->account_balance))
+                    ->state(fn (Labourer $record): float => max(0, -static::balanceOf($record)))
                     ->money('NPR')
                     ->color(fn ($state): ?string => $state > 0 ? 'warning' : 'gray')
                     ->visible(fn (): bool => static::canSeeWages()),
@@ -183,6 +183,14 @@ class LabourerResource extends Resource
                 Tables\Actions\DeleteAction::make(),
                 Tables\Actions\RestoreAction::make(),
             ]);
+    }
+
+    /**
+     * The list query selects the balance; records loaded any other way calculate it.
+     */
+    protected static function balanceOf(Labourer $record): float
+    {
+        return (float) ($record->getAttribute('account_balance') ?? $record->balance());
     }
 
     public static function getEloquentQuery(): Builder
