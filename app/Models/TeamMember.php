@@ -14,18 +14,18 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 #[Fillable([
-    'user_id', 'fullname', 'dob', 'contact1', 'contact2', 'designation',
+    'user_id', 'fullname', 'dob', 'contact1', 'contact2', 'designation', 'monthly_salary',
     'marital_status', 'national_id_path', 'bank_name', 'bank_account_name',
     'bank_account_number', 'created_by',
 ])]
-#[Hidden(['national_id_path', 'bank_account_number'])]
+#[Hidden(['national_id_path', 'bank_account_number', 'monthly_salary'])]
 class TeamMember extends Model
 {
     use LogsActivity, SoftDeletes;
 
     protected function casts(): array
     {
-        return ['dob' => 'date'];
+        return ['dob' => 'date', 'monthly_salary' => 'decimal:2'];
     }
 
     public function getActivitylogOptions(): LogOptions

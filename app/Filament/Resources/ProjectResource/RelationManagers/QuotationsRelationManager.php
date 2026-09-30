@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ProjectResource\RelationManagers;
 
+use App\Models\CompanySetting;
 use App\Models\Quotation;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -79,14 +80,17 @@ class QuotationsRelationManager extends RelationManager
                     ->default(0)
                     ->prefix('NPR')
                     ->live(onBlur: true),
+                // A PAN-only company must not charge or print VAT (Company & Tax Settings).
                 Forms\Components\TextInput::make('vat_percent')
                     ->label('VAT')
                     ->numeric()
                     ->minValue(0)
                     ->maxValue(100)
-                    ->default(0)
+                    ->default(fn (): float => CompanySetting::current()->chargesVat() ? (float) CompanySetting::current()->vat_rate : 0)
                     ->suffix('%')
-                    ->live(onBlur: true),
+                    ->live(onBlur: true)
+                    ->visible(fn (): bool => CompanySetting::current()->chargesVat())
+                    ->dehydrateStateUsing(fn ($state) => CompanySetting::current()->chargesVat() ? $state : 0),
                 Forms\Components\Placeholder::make('estimated_total')
                     ->label('Total')
                     ->content(function (Get $get): string {

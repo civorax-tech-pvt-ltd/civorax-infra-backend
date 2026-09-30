@@ -10,6 +10,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class EnrollmentResource extends Resource
 {
@@ -23,7 +24,7 @@ class EnrollmentResource extends Resource
     {
         return parent::getEloquentQuery()
             ->whereHas('student', fn (Builder $query) => $query->where('user_id', auth()->id()))
-            ->with(['course', 'coursePayments']);
+            ->with(['course', 'coursePayments', 'certificate']);
     }
 
     public static function form(Form $form): Form
@@ -53,6 +54,11 @@ class EnrollmentResource extends Resource
             ])
             ->filters([])
             ->actions([
+                Tables\Actions\Action::make('certificate')
+                    ->icon('heroicon-o-academic-cap')
+                    ->color('success')
+                    ->visible(fn (Enrollment $record): bool => $record->certificate !== null && ! $record->certificate->isRevoked())
+                    ->url(fn (Enrollment $record): string => route('certificates.show', $record->certificate), shouldOpenInNewTab: true),
                 Tables\Actions\ViewAction::make(),
             ])
             ->bulkActions([]);
@@ -87,7 +93,7 @@ class EnrollmentResource extends Resource
         return true;
     }
 
-    public static function canView(\Illuminate\Database\Eloquent\Model $record): bool
+    public static function canView(Model $record): bool
     {
         return true;
     }

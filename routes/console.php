@@ -6,6 +6,12 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
+// Before attendance:maintain prunes old daily detail, save staff cost shares for this and last month.
+Schedule::command('costs:allocate-staff')
+    ->dailyAt('00:30')
+    ->timezone(config('app.business_timezone'))
+    ->withoutOverlapping();
+
 Schedule::command('attendance:maintain')
     ->dailyAt('01:00')
     ->timezone(config('app.business_timezone'))
@@ -18,6 +24,11 @@ Schedule::command('tasks:send-reminders')
 
 Schedule::command('site:send-reminders')
     ->dailyAt(config('site.reminder_time'))
+    ->timezone(config('app.business_timezone'))
+    ->withoutOverlapping();
+
+Schedule::command('materials:stock-count-reminders')
+    ->monthlyOn((int) config('site.stock_count_day'), '09:00')
     ->timezone(config('app.business_timezone'))
     ->withoutOverlapping();
 

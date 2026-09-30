@@ -54,7 +54,8 @@ class Payment extends Model
         $alreadyPaid = (float) $project->payments()
             ->when($ignore?->exists, fn ($query) => $query->whereKeyNot($ignore->getKey()))
             ->sum('amount');
-        $remaining = round((float) $project->fee - $alreadyPaid - $alsoReserved, 2);
+        // Approved extra work (variations) adds to what the client can pay.
+        $remaining = round($project->contractValue() - $alreadyPaid - $alsoReserved, 2);
 
         if ($amount > $remaining) {
             return $remaining <= 0

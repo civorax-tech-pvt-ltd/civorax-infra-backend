@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['course_id', 'student_id', 'enrolled_at', 'created_by'])]
@@ -46,5 +47,10 @@ class Enrollment extends Model
     public function coursePaymentSubmissions(): HasMany
     {
         return $this->hasMany(CoursePaymentSubmission::class);
+    }
+
+    public function certificate(): HasOne
+    {
+        return $this->hasOne(Certificate::class);
     }
 }

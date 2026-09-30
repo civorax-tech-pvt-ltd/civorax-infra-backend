@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Forms\LoginAccountSection;
 use App\Filament\Resources\TeamMemberResource\Pages;
 use App\Models\TeamMember;
+use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -38,6 +39,13 @@ class TeamMemberResource extends Resource
                     ->maxLength(255),
                 Forms\Components\TextInput::make('designation')
                     ->maxLength(255),
+                Forms\Components\TextInput::make('monthly_salary')
+                    ->label('Monthly salary')
+                    ->numeric()
+                    ->minValue(0)
+                    ->prefix('Rs')
+                    ->helperText('Shared across projects by GPS attendance days for project staff cost. Leave empty if not charged to projects.')
+                    ->visible(fn (): bool => Filament::getCurrentPanel()?->getId() === 'admin'),
                 Forms\Components\TextInput::make('marital_status')
                     ->required()
                     ->maxLength(255),

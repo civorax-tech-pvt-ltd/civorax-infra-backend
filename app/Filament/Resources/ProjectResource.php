@@ -111,6 +111,22 @@ class ProjectResource extends Resource
                         ? 'NPR '.number_format($record->amountPaid(), 2).' paid · fee not set'
                         : 'NPR '.number_format($record->amountPaid(), 2).' paid · NPR '.number_format($record->balanceDue(), 2).' due')
                     ->visibleOn('edit'),
+                Forms\Components\Select::make('client_type')
+                    ->options(Project::CLIENT_TYPES)
+                    ->placeholder('Not set')
+                    ->helperText('Used for future VAT reporting.'),
+                Forms\Components\Select::make('price_basis')
+                    ->label('Contract price')
+                    ->options(Project::PRICE_BASES)
+                    ->default('vat_inclusive')
+                    ->required()
+                    ->selectablePlaceholder(false)
+                    ->helperText('While the company is PAN-only the contract value is the final price the client pays.'),
+                Forms\Components\Toggle::make('track_item_costs')
+                    ->label('Track cost per BOQ item')
+                    ->helperText('For bigger jobs: lets site entries be tagged to BOQ items and shows cost vs earned value per item.')
+                    ->inline(false)
+                    ->visible(fn (): bool => static::canViewCosts()),
                 Forms\Components\DatePicker::make('start_date')
                     ->default(now()),
                 Forms\Components\DatePicker::make('estimated_end_date')
@@ -118,6 +134,14 @@ class ProjectResource extends Resource
                 Forms\Components\Hidden::make('created_by')
                     ->default(fn () => auth()->id()),
             ]);
+    }
+
+    /**
+     * Cost budgets, profit and cash: super admins and roles given "view_project_costs" (Approval Settings).
+     */
+    public static function canViewCosts(): bool
+    {
+        return (bool) auth()->user()?->hasSitePower('view_project_costs');
     }
 
     /**
@@ -195,6 +219,12 @@ class ProjectResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
+                Tables\Actions\Action::make('costs')
+                    ->label('Costs')
+                    ->icon('heroicon-o-chart-pie')
+                    ->color('gray')
+                    ->visible(fn (): bool => static::canViewCosts())
+                    ->url(fn (Project $record): string => static::getUrl('costs', ['record' => $record])),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
@@ -211,6 +241,7 @@ class ProjectResource extends Resource
         return [
             RelationManagers\MilestonesRelationManager::class,
             RelationManagers\TasksRelationManager::class,
+            RelationManagers\BoqItemsRelationManager::class,
             RelationManagers\QuotationsRelationManager::class,
             RelationManagers\PaymentsRelationManager::class,
         ];
@@ -222,6 +253,7 @@ class ProjectResource extends Resource
             'index' => Pages\ListProjects::route('/'),
             'create' => Pages\CreateProject::route('/create'),
             'edit' => Pages\EditProject::route('/{record}/edit'),
+            'costs' => Pages\ProjectCosts::route('/{record}/costs'),
         ];
     }
 

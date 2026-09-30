@@ -22,6 +22,14 @@ class VendorResource extends Resource
 
     protected static ?int $navigationSort = 5;
 
+    /**
+     * Vendor balances and statements: super admins and roles given "view_vendor_ledger" (e.g. accountant).
+     */
+    public static function canSeeLedger(): bool
+    {
+        return (bool) auth()->user()?->hasSitePower('view_vendor_ledger');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -39,6 +47,9 @@ class VendorResource extends Resource
                 Forms\Components\TextInput::make('contact')
                     ->required()
                     ->maxLength(255),
+                Forms\Components\TextInput::make('pan_vat_no')
+                    ->label('PAN / VAT no.')
+                    ->maxLength(20),
                 Forms\Components\TextInput::make('address')
                     ->maxLength(255),
                 Forms\Components\Hidden::make('created_by')
@@ -58,6 +69,12 @@ class VendorResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('address')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('outstanding')
+                    ->label('Owed')
+                    ->state(fn (Vendor $record): float => $record->outstanding())
+                    ->money('NPR')
+                    ->color(fn ($state): ?string => $state > 0 ? 'danger' : null)
+                    ->visible(fn (): bool => static::canSeeLedger()),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -75,6 +92,11 @@ class VendorResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
+                Tables\Actions\Action::make('statement')
+                    ->icon('heroicon-o-book-open')
+                    ->color('gray')
+                    ->visible(fn (): bool => static::canSeeLedger())
+                    ->url(fn (Vendor $record): string => static::getUrl('statement', ['record' => $record])),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
@@ -99,6 +121,7 @@ class VendorResource extends Resource
             'index' => Pages\ListVendors::route('/'),
             'create' => Pages\CreateVendor::route('/create'),
             'edit' => Pages\EditVendor::route('/{record}/edit'),
+            'statement' => Pages\VendorStatement::route('/{record}/statement'),
         ];
     }
 

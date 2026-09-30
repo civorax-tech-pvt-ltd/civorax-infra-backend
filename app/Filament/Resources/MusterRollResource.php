@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Forms\BoqItemTagField;
 use App\Filament\Resources\Concerns\SiteAccess;
 use App\Filament\Resources\MusterRollResource\Pages;
 use App\Models\Labourer;
 use App\Models\MusterRoll;
 use App\Models\MusterRollLine;
+use App\Models\Project;
 use Closure;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -49,9 +51,18 @@ class MusterRollResource extends Resource
         return static::canUseSite() && ($record->isEditable() || static::canApproveSite() || static::canPayWages());
     }
 
+    /**
+     * Admins may delete any roll that is not approved (deleting a submitted one unlocks its attendance);
+     * an approved roll must be returned first so wages and payments never disappear by accident.
+     * Others may delete their own draft or returned rolls.
+     */
     public static function canDelete(Model $record): bool
     {
-        return $record->isEditable() && (static::isAdminPanel() || $record->prepared_by === auth()->id());
+        if (static::isAdminPanel()) {
+            return $record->status !== 'approved';
+        }
+
+        return $record->isEditable() && $record->prepared_by === auth()->id();
     }
 
     public static function getNavigationBadge(): ?string
@@ -84,6 +95,7 @@ class MusterRollResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required()
+                            ->live()
                             ->disabledOn('edit')
                             ->columnSpan(2),
                         Forms\Components\ToggleButtons::make('calendar')
@@ -136,6 +148,11 @@ class MusterRollResource extends Resource
                                         },
                                     ]),
                             ]),
+                    ]),
+                Forms\Components\Section::make('Cost per BOQ item')
+                    ->visible(fn (Get $get): bool => (bool) Project::find($get('project_id'))?->track_item_costs)
+                    ->schema([
+                        BoqItemTagField::make('project_id', 'Gang worked on BOQ item (optional)'),
                     ]),
                 Forms\Components\Section::make('Part II: reasons for unpaid wages')
                     ->description('Explain why a labourer\'s wage is still unpaid (e.g. absent on pay day, dispute). Printed on the roll.')
@@ -243,7 +260,33 @@ class MusterRollResource extends Resource
                     ->icon('heroicon-o-printer')
                     ->color('gray')
                     ->url(fn (MusterRoll $record): string => route('site.muster-rolls.print', $record), shouldOpenInNewTab: true),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\EditAction::make()
+                        ->label(fn (MusterRoll $record): string => $record->isEditable() ? 'Edit Part II / III' : 'Edit reasons'),
+                    static::deleteAction(Tables\Actions\DeleteAction::make()),
+                ]),
             ]);
+    }
+
+    /**
+     * Delete with a warning that says what happens to the month's attendance and payments.
+     *
+     * @template T of Tables\Actions\DeleteAction|\Filament\Actions\DeleteAction
+     *
+     * @param  T  $action
+     * @return T
+     */
+    public static function deleteAction($action)
+    {
+        return $action
+            ->visible(fn (MusterRoll $record): bool => static::canDelete($record))
+            ->modalHeading(fn (MusterRoll $record): string => "Delete the {$record->label()} muster roll?")
+            ->modalDescription(function (MusterRoll $record): string {
+                $paid = (float) $record->wagePayments()->sum('amount');
+
+                return 'Daily labour attendance is kept, and the month is unlocked so it can be corrected and a new roll prepared.'
+                    .($paid > 0 ? ' Rs '.number_format($paid, 2).' already paid through this roll stays in the labourers\' ledgers.' : '');
+            });
     }
 
     public static function infolist(Infolist $infolist): Infolist

@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-#[Fillable(['user_id', 'fullname', 'dob', 'contact', 'address', 'academic_qualification', 'created_by'])]
+#[Fillable(['user_id', 'fullname', 'dob', 'contact', 'address', 'photo_path', 'academic_qualification', 'created_by'])]
 class Student extends Model
 {
     use LogsActivity, SoftDeletes;

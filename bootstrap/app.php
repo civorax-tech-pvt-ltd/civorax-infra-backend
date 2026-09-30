@@ -13,8 +13,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Site pages (muster roll print, offline site app) live outside the panels; send guests to the team login.
-        $middleware->redirectGuestsTo('/team/login');
+        // Pages outside the panels: certificates belong to students, site pages (muster roll print, offline app) to the team.
+        $middleware->redirectGuestsTo(fn (Request $request): string => $request->is('certificates/*') ? '/student/login' : '/team/login');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

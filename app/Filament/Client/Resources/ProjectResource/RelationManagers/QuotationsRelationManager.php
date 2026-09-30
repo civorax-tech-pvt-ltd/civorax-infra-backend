@@ -35,7 +35,8 @@ class QuotationsRelationManager extends RelationManager
                         Infolists\Components\TextEntry::make('amount')->money('NPR'),
                     ]),
                 Infolists\Components\TextEntry::make('discount')->money('NPR'),
-                Infolists\Components\TextEntry::make('vat_percent')->label('VAT')->suffix('%'),
+                Infolists\Components\TextEntry::make('vat_percent')->label('VAT')->suffix('%')
+                    ->visible(fn ($record): bool => (float) $record->vat_percent > 0), // no VAT line from a PAN-only company
                 Infolists\Components\TextEntry::make('total')->money('NPR')->weight('bold'),
                 Infolists\Components\TextEntry::make('notes')->label('Terms & notes')->columnSpanFull()->placeholder('—'),
                 Infolists\Components\TextEntry::make('client_note')

@@ -22,7 +22,7 @@ use Illuminate\Validation\ValidationException;
  */
 #[Fillable([
     'project_id', 'calendar', 'year', 'month', 'starts_on', 'ends_on', 'status',
-    'prepared_by', 'submitted_at', 'approved_by', 'approved_at', 'review_note',
+    'prepared_by', 'submitted_at', 'approved_by', 'approved_at', 'review_note', 'boq_item_id',
 ])]
 class MusterRoll extends Model
 {
@@ -68,7 +68,12 @@ class MusterRoll extends Model
             if (! $roll->isLocked()) {
                 $roll->rebuildLines();
             }
+
+            // Approved wages are labour cost in the project cost ledger; returning the roll takes them out.
+            ProjectCost::syncMusterRoll($roll);
         });
+
+        static::deleted(fn (MusterRoll $roll) => ProjectCost::syncMusterRoll($roll));
     }
 
     protected function casts(): array

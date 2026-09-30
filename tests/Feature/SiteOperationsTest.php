@@ -215,6 +215,36 @@ class SiteOperationsTest extends TestCase
         $this->assertSame('14', $roll->works()->sole()->mb_ref);
     }
 
+    public function test_admins_delete_submitted_rolls_but_approved_ones_must_be_returned_first(): void
+    {
+        $this->markAswinAttendance();
+        $roll = MusterRoll::create(['project_id' => $this->project->id, 'calendar' => 'bs', 'year' => 2083, 'month' => 6, 'prepared_by' => $this->supervisorUser->id]);
+        $roll->submit($this->supervisorUser);
+
+        // The supervisor cannot delete once submitted; the admin can, which unlocks the month.
+        $this->actAs($this->supervisorUser, 'team');
+        $this->assertFalse(MusterRollResource::canDelete($roll));
+
+        $this->actAs($this->admin, 'admin');
+        $this->assertTrue(MusterRollResource::canDelete($roll));
+
+        $roll->approve($this->admin);
+        $this->assertFalse(MusterRollResource::canDelete($roll->refresh()));
+
+        Livewire::test(ViewMusterRoll::class, ['record' => $roll->getRouteKey()])
+            ->assertActionHidden('delete')
+            ->callAction('return', ['note' => 'Recount days']);
+
+        // Once returned (page reloaded), the admin can delete it.
+        Livewire::test(ViewMusterRoll::class, ['record' => $roll->getRouteKey()])
+            ->assertActionVisible('delete')
+            ->callAction('delete');
+
+        $this->assertModelMissing($roll);
+        $this->assertSame(6, LabourAttendance::count()); // attendance is kept
+        LabourAttendance::saveDay($this->project, '2026-09-19', [$this->helper->id => ['status' => 'present']]); // and unlocked
+    }
+
     public function test_team_members_only_see_their_own_sites(): void
     {
         $this->actAs($this->supervisorUser, 'team');

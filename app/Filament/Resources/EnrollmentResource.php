@@ -74,6 +74,15 @@ class EnrollmentResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
+                Tables\Actions\Action::make('certificate')
+                    ->label(fn (Enrollment $record): string => $record->certificate ? 'Certificate' : 'Issue certificate')
+                    ->icon('heroicon-o-academic-cap')
+                    ->color(fn (Enrollment $record): string => $record->certificate ? 'success' : 'gray')
+                    ->visible(fn (): bool => CertificateResource::canAccess())
+                    ->url(fn (Enrollment $record): string => $record->certificate
+                        ? route('certificates.show', $record->certificate)
+                        : CertificateResource::getUrl('create', ['enrollment' => $record->id]))
+                    ->openUrlInNewTab(fn (Enrollment $record): bool => $record->certificate !== null),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
@@ -104,6 +113,7 @@ class EnrollmentResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
+            ->with('certificate')
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);

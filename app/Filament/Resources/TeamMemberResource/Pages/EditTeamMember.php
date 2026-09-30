@@ -32,6 +32,7 @@ class EditTeamMember extends EditRecord
     {
         $data['national_id_path'] = $this->record->national_id_path;
         $data['bank_account_number'] = $this->record->bank_account_number;
+        $data['monthly_salary'] = $this->record->monthly_salary;
         $data['roles'] = $this->record->user->roles->pluck('id')->toArray();
 
         return $this->fillLoginAccount($data);

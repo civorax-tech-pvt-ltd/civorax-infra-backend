@@ -13,9 +13,10 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 #[Fillable([
-    'client_id', 'project_type_id', 'title', 'description', 'site_address',
+    'client_id', 'client_type', 'project_type_id', 'title', 'description', 'site_address',
     'city', 'ward_no', 'latitude', 'longitude', 'geofence_radius',
-    'status', 'fee', 'start_date', 'estimated_end_date', 'created_by',
+    'status', 'fee', 'price_basis', 'cost_to_finish_override', 'manual_progress', 'track_item_costs',
+    'start_date', 'estimated_end_date', 'created_by',
 ])]
 class Project extends Model
 {
@@ -47,6 +48,25 @@ class Project extends Model
     ];
 
     /**
+     * @var array<string, string>
+     */
+    public const CLIENT_TYPES = [
+        'house_owner' => 'House owner',
+        'company' => 'Company',
+        'government' => 'Government',
+    ];
+
+    /**
+     * Whether the contract price already includes VAT or VAT is added on top (for future VAT reporting).
+     *
+     * @var array<string, string>
+     */
+    public const PRICE_BASES = [
+        'vat_inclusive' => 'Price includes VAT (final price)',
+        'plus_vat' => 'Price plus VAT',
+    ];
+
+    /**
      * Statuses set by hand that automatic status updates never override.
      *
      * @var list<string>
@@ -70,6 +90,9 @@ class Project extends Model
             'start_date' => 'date',
             'estimated_end_date' => 'date',
             'progress' => 'integer',
+            'manual_progress' => 'integer',
+            'track_item_costs' => 'boolean',
+            'cost_to_finish_override' => 'decimal:2',
         ];
     }
 
@@ -116,6 +139,14 @@ class Project extends Model
         return $description === strip_tags($description) ? nl2br(e($description)) : $description;
     }
 
+    /**
+     * What the client pays in total: the agreed fee (accepted quotation) plus approved extra work.
+     */
+    public function contractValue(): float
+    {
+        return round((float) $this->fee + (float) $this->variations()->approved()->sum('amount'), 2);
+    }
+
     public function amountPaid(): float
     {
         return (float) $this->payments()->sum('amount');
@@ -123,7 +154,7 @@ class Project extends Model
 
     public function balanceDue(): ?float
     {
-        return $this->fee === null ? null : (float) $this->fee - $this->amountPaid();
+        return $this->fee === null ? null : $this->contractValue() - $this->amountPaid();
     }
 
     /**
@@ -351,5 +382,81 @@ class Project extends Model
     public function siteReports(): HasMany
     {
         return $this->hasMany(SiteReport::class);
+    }
+
+    public function boqItems(): HasMany
+    {
+        return $this->hasMany(BoqItem::class)->orderBy('sort')->orderBy('id');
+    }
+
+    public function budgets(): HasMany
+    {
+        return $this->hasMany(ProjectBudget::class);
+    }
+
+    public function costs(): HasMany
+    {
+        return $this->hasMany(ProjectCost::class);
+    }
+
+    public function purchaseBills(): HasMany
+    {
+        return $this->hasMany(PurchaseBill::class);
+    }
+
+    public function pettyCashClaims(): HasMany
+    {
+        return $this->hasMany(PettyCashClaim::class);
+    }
+
+    public function variations(): HasMany
+    {
+        return $this->hasMany(Variation::class);
+    }
+
+    public function staffCostAllocations(): HasMany
+    {
+        return $this->hasMany(StaffCostAllocation::class);
+    }
+
+    public function workOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class);
+    }
+
+    public function equipmentEntries(): HasMany
+    {
+        return $this->hasMany(EquipmentEntry::class);
+    }
+
+    public function materialPlans(): HasMany
+    {
+        return $this->hasMany(ProjectMaterialPlan::class);
+    }
+
+    public function itemCostReport(): BoqItemCostReport
+    {
+        return new BoqItemCostReport($this);
+    }
+
+    public function materialReport(): ProjectMaterialReport
+    {
+        return new ProjectMaterialReport($this);
+    }
+
+    public function costReport(): ProjectCostReport
+    {
+        return new ProjectCostReport($this);
+    }
+
+    /**
+     * Value-weighted BOQ progress: Σ(executed × rate) ÷ Σ planned value; null when the project has no BOQ.
+     */
+    public function boqProgress(): ?float
+    {
+        $items = $this->boqItems()->with('latestApprovedMeasurement')->get();
+        $planned = (float) $items->sum(fn (BoqItem $item): float => (float) $item->planned_value);
+
+        return $planned > 0 ? round($items->sum(fn (BoqItem $item): float => $item->earnedValue()) / $planned * 100, 1) : null;
     }
 }

@@ -53,7 +53,17 @@ class ViewProject extends ViewRecord
                         TextEntry::make('fee')
                             ->label('Contract fee')
                             ->money('NPR')
-                            ->placeholder('To be quoted'),
+                            ->placeholder('To be quoted')
+                            ->helperText(fn (Project $record): ?string => ($extra = $record->contractValue() - (float) $record->fee) > 0
+                                ? '+ approved extra work NPR '.number_format($extra, 2).' = NPR '.number_format($record->contractValue(), 2)
+                                : null),
+                        TextEntry::make('extra_work')
+                            ->label('Approved extra work')
+                            ->state(fn (Project $record): array => $record->variations()->approved()->get()
+                                ->map(fn ($variation): string => "{$variation->title}: NPR ".number_format((float) $variation->amount, 2))->all())
+                            ->listWithLineBreaks()
+                            ->visible(fn (Project $record): bool => $record->variations()->approved()->exists())
+                            ->columnSpanFull(),
                         TextEntry::make('paid')
                             ->label('Paid')
                             ->state(fn (Project $record): float => $record->amountPaid())

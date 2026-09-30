@@ -62,6 +62,7 @@ class ViewMusterRoll extends ViewRecord
                     }
 
                     Notification::make()->title('Submitted for approval')->success()->send();
+                    $this->reloadPage();
                 }),
             Actions\Action::make('approve')
                 ->icon('heroicon-o-check-circle')
@@ -73,6 +74,7 @@ class ViewMusterRoll extends ViewRecord
                 ->action(function (array $data): void {
                     $this->getRoll()->approve(auth()->user(), $data['note'] ?? null);
                     Notification::make()->title('Muster roll approved. Wages are now payable.')->success()->send();
+                    $this->reloadPage();
                 }),
             Actions\Action::make('return')
                 ->label('Return for changes')
@@ -87,6 +89,7 @@ class ViewMusterRoll extends ViewRecord
                 ->action(function (array $data): void {
                     $this->getRoll()->returnForChanges(auth()->user(), $data['note']);
                     Notification::make()->title('Returned. Attendance for this month is unlocked.')->warning()->send();
+                    $this->reloadPage();
                 }),
             $this->payWagesAction(),
             Actions\Action::make('print')
@@ -96,7 +99,16 @@ class ViewMusterRoll extends ViewRecord
                 ->url(fn (): string => route('site.muster-rolls.print', $this->getRoll()), shouldOpenInNewTab: true),
             Actions\EditAction::make()
                 ->label(fn (): string => $this->getRoll()->isEditable() ? 'Edit Part II / III' : 'Edit reasons'),
+            MusterRollResource::deleteAction(Actions\DeleteAction::make()),
         ];
+    }
+
+    /**
+     * Header buttons are decided when the page loads, so reload after a status change to show the right ones.
+     */
+    protected function reloadPage(): void
+    {
+        $this->redirect(MusterRollResource::getUrl('view', ['record' => $this->getRoll()]));
     }
 
     protected function payWagesAction(): Actions\Action

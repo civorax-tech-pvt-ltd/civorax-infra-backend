@@ -40,6 +40,19 @@ class StudentResource extends Resource
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TagsInput::make('academic_qualification'),
+                Forms\Components\FileUpload::make('photo_path')
+                    ->label('Photo')
+                    ->helperText('Passport-size photo. Shown on the certificate verification page (not printed on the certificate).')
+                    ->image()
+                    ->avatar()
+                    ->imageEditor()
+                    ->imageResizeMode('cover')
+                    ->imageCropAspectRatio('1:1')
+                    ->imageResizeTargetWidth('600')
+                    ->imageResizeTargetHeight('600')
+                    ->disk('public')
+                    ->directory('students')
+                    ->maxSize(4096),
                 Forms\Components\Hidden::make('created_by')
                     ->default(fn () => auth()->id()),
             ]);
@@ -52,6 +65,10 @@ class StudentResource extends Resource
                 Tables\Columns\TextColumn::make('user.name')
                     ->numeric()
                     ->sortable(),
+                Tables\Columns\ImageColumn::make('photo_path')
+                    ->label('')
+                    ->disk('public')
+                    ->circular(),
                 Tables\Columns\TextColumn::make('fullname')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('dob')

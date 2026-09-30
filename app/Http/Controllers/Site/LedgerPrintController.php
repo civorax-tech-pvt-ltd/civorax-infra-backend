@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\LabourContractor;
 use App\Models\Labourer;
 use App\Models\Project;
+use App\Models\Vendor;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -39,6 +40,18 @@ class LedgerPrintController extends Controller
             'contractor' => $contractor,
             'labourers' => $contractor->labourers()->withBalance()->orderBy('name')->get(),
             'payments' => $contractor->wagePayments()->with(['labourer', 'project'])->latest('paid_on')->limit(100)->get(),
+        ]);
+    }
+
+    public function vendor(Request $request, Vendor $vendor): View
+    {
+        abort_unless($request->user()->hasSitePower('view_vendor_ledger'), 403);
+
+        return view('costs.vendor-statement-print', [
+            'vendor' => $vendor,
+            'statement' => $vendor->statement($request->date('from')?->toDateString(), $request->date('until')?->toDateString()),
+            'from' => $request->date('from'),
+            'until' => $request->date('until'),
         ]);
     }
 

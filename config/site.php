@@ -26,4 +26,16 @@ return [
 
     'reminder_time' => env('SITE_REMINDER_TIME', '18:00'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Monthly stock count
+    |--------------------------------------------------------------------------
+    |
+    | Day of the month (1-28) on which site teams are reminded to count key
+    | materials left on site.
+    |
+    */
+
+    'stock_count_day' => (int) env('SITE_STOCK_COUNT_DAY', 1),
+
 ];

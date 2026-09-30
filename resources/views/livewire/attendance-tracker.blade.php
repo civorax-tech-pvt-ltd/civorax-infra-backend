@@ -9,6 +9,7 @@
 
 <div
     x-data="{
+        open: false,
         send() {
             if (! window.isSecureContext || ! navigator.geolocation) {
                 $wire.locationUnavailable('Location needs a secure (https) connection');
@@ -23,9 +24,12 @@
         },
     }"
     x-init="send(); setInterval(() => send(), {{ \App\Livewire\AttendanceTracker::INTERVAL_SECONDS * 1000 }})"
-    title="{{ $message }}"
-    style="display: flex; align-items: center; gap: 0.375rem; font-size: 0.75rem; max-width: 16rem; margin-inline-end: 0.75rem;"
+    x-on:click="open = ! open; send()"
+    title="{{ $message }} (tap to check again)"
+    role="button"
+    style="display: flex; align-items: center; gap: 0.375rem; font-size: 0.75rem; max-width: 16rem; margin-inline-end: 0.75rem; cursor: pointer;"
 >
     <span style="flex: none; width: 0.5rem; height: 0.5rem; border-radius: 9999px; background: rgb({{ $colors[$state] ?? $colors['waiting'] }});"></span>
-    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">📍 {{ $message }}</span>
+    {{-- Truncated to one line; tapping shows the whole reason (phones have no hover tooltip). --}}
+    <span x-bind:style="open ? 'white-space: normal' : 'overflow: hidden; text-overflow: ellipsis; white-space: nowrap;'">📍 {{ $message }}</span>
 </div>

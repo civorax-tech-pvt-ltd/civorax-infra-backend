@@ -41,6 +41,12 @@ class ViewEnrollment extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('certificate')
+                ->label('My certificate')
+                ->icon('heroicon-o-academic-cap')
+                ->color('success')
+                ->visible(fn (): bool => $this->record->certificate !== null && ! $this->record->certificate->isRevoked())
+                ->url(fn (): string => route('certificates.show', $this->record->certificate), shouldOpenInNewTab: true),
             Action::make('makePayment')
                 ->label('Make Payment')
                 ->icon('heroicon-o-qr-code')

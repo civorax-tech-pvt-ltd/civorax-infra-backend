@@ -15,6 +15,12 @@ class EditProject extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('costs')
+                ->label('Costs & profit')
+                ->icon('heroicon-o-chart-pie')
+                ->color('gray')
+                ->visible(fn (): bool => ProjectResource::canViewCosts())
+                ->url(fn (Project $record): string => ProjectResource::getUrl('costs', ['record' => $record])),
             Actions\Action::make('applyMilestoneTemplates')
                 ->label('Add milestones from template')
                 ->icon('heroicon-o-queue-list')

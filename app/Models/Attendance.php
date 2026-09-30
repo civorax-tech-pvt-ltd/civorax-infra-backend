@@ -74,6 +74,7 @@ class Attendance extends Model
     public static function recordLocation(TeamMember $member, float $latitude, float $longitude, float $accuracy, ?CarbonInterface $at = null): array
     {
         $at ??= now();
+        self::$lastNearest = null;
         $match = $accuracy <= self::MAX_ACCURACY ? self::nearestPlace($member, $latitude, $longitude) : null;
 
         LocationPing::create([
@@ -95,7 +96,7 @@ class Attendance extends Model
                 'distance' => null,
                 'message' => $accuracy > self::MAX_ACCURACY
                     ? 'Location too imprecise (±'.round($accuracy).' m). Turn on GPS / precise location.'
-                    : 'Not at an office or one of your project sites.',
+                    : self::notAtSiteMessage(),
             ];
         }
 
@@ -174,10 +175,15 @@ class Attendance extends Model
             $places->push(['name' => $project->title, 'radius' => $project->geofence_radius, 'lat' => (float) $project->latitude, 'lng' => (float) $project->longitude, 'project' => $project, 'office' => null]);
         }
 
-        return $places
+        $places = $places
             ->map(fn (array $place): array => [...$place, 'distance' => self::distanceInMeters($latitude, $longitude, $place['lat'], $place['lng'])])
+            ->sortBy('distance');
+
+        // Remembered so the "not at a site" message can say why (nothing set up, or how far away).
+        self::$lastNearest = $places->isEmpty() ? null : $places->first();
+
+        return $places
             ->filter(fn (array $place): bool => $place['distance'] <= $place['radius'])
-            ->sortBy('distance')
             ->map(fn (array $place): array => [
                 'name' => $place['name'],
                 'distance' => $place['distance'],
@@ -185,6 +191,29 @@ class Attendance extends Model
                 'office' => $place['office'],
             ])
             ->first();
+    }
+
+    /**
+     * The closest office or project site from the last nearestPlace() call, matched or not.
+     *
+     * @var array{name: string, radius: int, distance: int|float}|null
+     */
+    protected static ?array $lastNearest = null;
+
+    /**
+     * Why a location did not count as present, in words the team member can act on.
+     */
+    protected static function notAtSiteMessage(): string
+    {
+        $nearest = self::$lastNearest;
+
+        if ($nearest === null) {
+            return 'No office or project site of yours has a GPS location yet. Ask the admin to set one.';
+        }
+
+        $format = fn (float $meters): string => $meters >= 1000 ? round($meters / 1000, 1).' km' : round($meters).' m';
+
+        return "Not at a site: nearest is {$nearest['name']}, {$format($nearest['distance'])} away (must be within {$format($nearest['radius'])}).";
     }
 
     /**

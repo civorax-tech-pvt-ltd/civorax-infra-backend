@@ -115,6 +115,7 @@ class TeamAttendanceTest extends TestCase
 
         $this->assertFalse($result['matched']);
         $this->assertSame(0, Attendance::count());
+        $this->assertMatchesRegularExpression('/^Not at a site: nearest is .+, 2\.2 km away \(must be within 1 km\)\.$/', $result['message']);
 
         $ping = LocationPing::sole();
         $this->assertFalse($ping->matched);
@@ -125,8 +126,12 @@ class TeamAttendanceTest extends TestCase
     {
         [$outsider] = $this->makeTeamMember('9833333333', 'Saugat Dhungana');
 
-        $this->assertFalse(Attendance::recordLocation($outsider, ...[...self::SITE, 10])['matched']);
+        $result = Attendance::recordLocation($outsider, ...[...self::SITE, 10]);
+
+        $this->assertFalse($result['matched']);
         $this->assertSame(0, Attendance::count());
+        // Nothing of theirs has coordinates, so the badge says what to fix instead of "not at a site".
+        $this->assertSame('No office or project site of yours has a GPS location yet. Ask the admin to set one.', $result['message']);
     }
 
     public function test_offices_count_for_every_team_member(): void

@@ -3,28 +3,41 @@
 namespace App\Notifications;
 
 use App\Filament\Client\Resources\ProjectResource as ClientProjectResource;
+use App\Filament\Resources\BoqMeasurementResource;
+use App\Filament\Resources\EquipmentEntryResource;
 use App\Filament\Resources\InquiryResource;
 use App\Filament\Resources\MusterRollResource;
+use App\Filament\Resources\PettyCashClaimResource;
 use App\Filament\Resources\ProjectResource;
+use App\Filament\Resources\PurchaseBillResource;
 use App\Filament\Resources\SiteReportResource;
 use App\Filament\Resources\TaskResource;
+use App\Filament\Resources\VariationResource;
+use App\Filament\Resources\WorkOrderResource;
 use App\Filament\Student\Resources\EnrollmentResource as StudentEnrollmentResource;
+use App\Models\BoqMeasurement;
+use App\Models\Certificate;
 use App\Models\ClassSession;
 use App\Models\CoursePayment;
 use App\Models\CoursePaymentSubmission;
 use App\Models\Enrollment;
+use App\Models\EquipmentEntry;
 use App\Models\Inquiry;
 use App\Models\MusterRoll;
 use App\Models\Payment;
+use App\Models\PettyCashClaim;
 use App\Models\Project;
 use App\Models\ProjectDocument;
 use App\Models\ProjectMilestone;
 use App\Models\ProjectPaymentSubmission;
+use App\Models\PurchaseBill;
 use App\Models\Quotation;
 use App\Models\SiteReport;
 use App\Models\Task;
 use App\Models\TeamMember;
 use App\Models\User;
+use App\Models\Variation;
+use App\Models\WorkOrder;
 use Illuminate\Support\Collection;
 
 /**
@@ -276,14 +289,159 @@ class Alerts
         );
     }
 
+    public static function purchaseBillSubmitted(PurchaseBill $bill): void
+    {
+        static::notifySiteApprovers(
+            ($bill->isFlagged() ? 'Bill to review (not billed to the company): ' : 'Bill to approve: ').static::money($bill->total_amount),
+            "{$bill->project->title} · {$bill->vendor?->name} · bill {$bill->bill_no}",
+            fn (string $panel): string => PurchaseBillResource::getUrl(panel: $panel),
+            'heroicon-o-receipt-percent',
+            'approve_purchase_bills',
+        );
+    }
+
+    public static function purchaseBillReviewed(PurchaseBill $bill): void
+    {
+        $approved = $bill->status === 'approved';
+
+        Alert::send(
+            $bill->enteredBy,
+            ($approved ? 'Bill approved: ' : 'Bill rejected: ')."{$bill->vendor?->name} {$bill->bill_no}",
+            $bill->project->title.($bill->review_note ? " · {$bill->review_note}" : ''),
+            PurchaseBillResource::getUrl(panel: 'team'),
+            $approved ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle',
+            $approved ? 'success' : 'danger',
+        );
+    }
+
+    public static function variationSubmitted(Variation $variation): void
+    {
+        static::notifySiteApprovers(
+            'Extra work to approve: '.static::money($variation->amount),
+            "{$variation->project->title} · {$variation->title}",
+            fn (string $panel): string => VariationResource::getUrl(panel: $panel),
+            'heroicon-o-plus-circle',
+            'approve_variations',
+        );
+    }
+
+    public static function variationApproved(Variation $variation): void
+    {
+        Alert::send(
+            $variation->enteredBy,
+            "Extra work approved: {$variation->title}",
+            "{$variation->project->title} · contract value is now ".static::money($variation->project->contractValue()),
+            VariationResource::getUrl(panel: 'team'),
+            'heroicon-o-check-circle',
+            'success',
+        );
+
+        Alert::send(
+            $variation->project->client?->user,
+            "Extra work added: {$variation->title}",
+            static::money($variation->amount)." added to {$variation->project->title}. New total: ".static::money($variation->project->contractValue()).'.',
+            static::clientProjectUrl($variation->project, 2),
+            'heroicon-o-plus-circle',
+            'info',
+        );
+    }
+
+    public static function workOrderSubmitted(WorkOrder $order): void
+    {
+        static::notifySiteApprovers(
+            'Work order to approve: '.static::money($order->agreed_amount),
+            "{$order->project->title} · {$order->vendor?->name} · {$order->scope}",
+            fn (string $panel): string => WorkOrderResource::getUrl(panel: $panel),
+            'heroicon-o-briefcase',
+            'approve_work_orders',
+        );
+    }
+
+    public static function workOrderReviewed(WorkOrder $order): void
+    {
+        $approved = $order->status === 'approved';
+
+        Alert::send(
+            $order->enteredBy,
+            ($approved ? 'Work order approved: ' : 'Work order rejected: ').$order->number,
+            "{$order->vendor?->name} · {$order->scope}".($order->review_note ? " · {$order->review_note}" : ''),
+            WorkOrderResource::getUrl(panel: 'team'),
+            $approved ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle',
+            $approved ? 'success' : 'danger',
+        );
+    }
+
+    public static function equipmentSubmitted(EquipmentEntry $entry): void
+    {
+        static::notifySiteApprovers(
+            (EquipmentEntry::KINDS[$entry->kind] ?? 'Equipment').' to approve: '.static::money($entry->amount),
+            "{$entry->project->title} · {$entry->description}",
+            fn (string $panel): string => EquipmentEntryResource::getUrl(panel: $panel),
+            'heroicon-o-truck',
+            'approve_equipment',
+        );
+    }
+
+    public static function pettyCashSubmitted(PettyCashClaim $claim): void
+    {
+        static::notifySiteApprovers(
+            'Petty-cash claim: '.static::money($claim->amount),
+            "{$claim->project->title} · {$claim->description} · by {$claim->claimant?->name}",
+            fn (string $panel): string => PettyCashClaimResource::getUrl(panel: $panel),
+            'heroicon-o-banknotes',
+            'approve_petty_cash',
+        );
+    }
+
+    public static function pettyCashReviewed(PettyCashClaim $claim): void
+    {
+        $approved = $claim->status === 'approved';
+
+        Alert::send(
+            $claim->claimant,
+            ($approved ? 'Claim approved: ' : 'Claim rejected: ').static::money($claim->amount),
+            $claim->description.($claim->review_note ? " · {$claim->review_note}" : ''),
+            PettyCashClaimResource::getUrl(panel: 'team'),
+            $approved ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle',
+            $approved ? 'success' : 'danger',
+        );
+    }
+
+    public static function measurementSubmitted(BoqMeasurement $measurement): void
+    {
+        $item = $measurement->boqItem;
+
+        static::notifySiteApprovers(
+            "Measurement to approve: {$item->description}",
+            "{$item->project->title} · {$measurement->executed_quantity} of {$item->quantity} {$item->unit} done to date",
+            fn (string $panel): string => BoqMeasurementResource::getUrl(panel: $panel),
+            'heroicon-o-calculator',
+            'approve_boq_measurements',
+        );
+    }
+
+    public static function measurementReviewed(BoqMeasurement $measurement): void
+    {
+        $approved = $measurement->status === 'approved';
+
+        Alert::send(
+            $measurement->enteredBy,
+            ($approved ? 'Measurement approved: ' : 'Measurement rejected: ').$measurement->boqItem->description,
+            $measurement->boqItem->project->title.($measurement->review_note ? " · {$measurement->review_note}" : ''),
+            BoqMeasurementResource::getUrl(panel: 'team'),
+            $approved ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle',
+            $approved ? 'success' : 'danger',
+        );
+    }
+
     /**
      * Super admins get admin panel links; other approvers (roles granted the power) get team panel links.
      *
      * @param  \Closure(string): string  $url
      */
-    protected static function notifySiteApprovers(string $title, string $body, \Closure $url, string $icon): void
+    protected static function notifySiteApprovers(string $title, string $body, \Closure $url, string $icon, string $permission = 'approve_site_records'): void
     {
-        [$admins, $others] = User::withSitePower('approve_site_records')->partition(fn (User $user): bool => $user->hasRole('super_admin'));
+        [$admins, $others] = User::withSitePower($permission)->partition(fn (User $user): bool => $user->hasRole('super_admin'));
 
         Alert::send($admins, $title, $body, $url('admin'), $icon, 'warning');
         Alert::send($others, $title, $body, $url('team'), $icon, 'warning');
@@ -329,6 +487,18 @@ class Alerts
                 'info',
             );
         }
+    }
+
+    public static function certificateIssued(Certificate $certificate): void
+    {
+        Alert::send(
+            $certificate->enrollment?->student?->user,
+            'Your certificate is ready',
+            "{$certificate->course_title} · {$certificate->number}. Congratulations!",
+            static::enrollmentUrl($certificate->enrollment),
+            'heroicon-o-academic-cap',
+            'success',
+        );
     }
 
     protected static function enrollmentUrl(?Enrollment $enrollment): ?string
