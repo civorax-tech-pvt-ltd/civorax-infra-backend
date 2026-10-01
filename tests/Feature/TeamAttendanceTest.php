@@ -216,6 +216,7 @@ class TeamAttendanceTest extends TestCase
 
     public function test_team_members_only_see_their_own_attendance_and_cannot_add_any(): void
     {
+        Carbon::setTestNow('2026-09-28 04:00:00'); // the list defaults to "this month"; keep the records inside it
         [$colleague] = $this->makeTeamMember('9833333333', 'Saugat Dhungana');
         $mine = Attendance::create(['team_member_id' => $this->member->id, 'date' => '2026-09-28', 'first_seen_at' => now(), 'last_seen_at' => now()]);
         $theirs = Attendance::create(['team_member_id' => $colleague->id, 'date' => '2026-09-28', 'first_seen_at' => now(), 'last_seen_at' => now()]);

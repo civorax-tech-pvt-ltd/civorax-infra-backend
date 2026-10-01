@@ -37,14 +37,9 @@ class ProjectDocumentResource extends Resource
                     ->required()
                     ->maxLength(255),
                 Forms\Components\Select::make('type')
-                    ->options([
-                        'drawing' => 'Drawing',
-                        'render' => 'Render',
-                        'structural' => 'Structural',
-                        'approval_document' => 'Approval Document',
-                        'other' => 'Other',
-                    ])
-                    ->required(),
+                    ->options(ProjectDocument::TYPES)
+                    ->required()
+                    ->helperText('Documents are visible to the client in their portal. An Agreement also gets a download button on their project page.'),
                 Forms\Components\FileUpload::make('file_path')
                     ->required(),
                 Forms\Components\TextInput::make('version')
@@ -66,9 +61,16 @@ class ProjectDocumentResource extends Resource
                 Tables\Columns\TextColumn::make('title')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('type')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => ProjectDocument::TYPES[$state] ?? $state)
+                    ->color(fn (string $state): string => $state === 'agreement' ? 'success' : 'gray')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('file_path')
-                    ->searchable(),
+                    ->label('File')
+                    ->formatStateUsing(fn (): string => 'Open')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('primary')
+                    ->url(fn (ProjectDocument $record): string => $record->url(), shouldOpenInNewTab: true),
                 Tables\Columns\TextColumn::make('version')
                     ->numeric()
                     ->sortable(),

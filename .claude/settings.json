@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "additionalDirectories": [
+      "D:\\Website\\civorax-infra\\src\\features\\blog\\components",
+      "D:\\Website\\civorax-infra\\src\\app\\[locale]\\(marketing)\\blog"
+    ]
+  }
+}

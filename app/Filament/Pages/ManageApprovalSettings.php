@@ -52,6 +52,8 @@ class ManageApprovalSettings extends Page implements HasForms
         'approve_equipment' => ['Equipment & transport', 'Approve machine hire hours and transport trips.'],
         'approve_variations' => ['Variations', 'Approve extra work that adds to the contract value (the client is told).'],
         'view_project_costs' => ['See cost & profit reports', 'View project budgets, cost reports and profit.'],
+        'approve_portfolio_projects' => ['Our Work (portfolio)', 'Publish portfolio projects and approve (or send back) projects submitted by team members.'],
+        'approve_blog_posts' => ['Blog posts', 'Publish blog posts directly and approve (or send back) posts submitted by team members.'],
     ];
 
     public ?array $data = [];

@@ -39,6 +39,7 @@ class ClientPanelProvider extends PanelProvider
             ->pages([
                 Pages\Dashboard::class,
             ])
+            ->navigationGroups(['Projects', 'Payments', 'Files'])
             ->discoverWidgets(in: app_path('Filament/Client/Widgets'), for: 'App\\Filament\\Client\\Widgets')
             ->widgets([
                 WelcomeBanner::class,

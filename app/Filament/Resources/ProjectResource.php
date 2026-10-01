@@ -122,6 +122,10 @@ class ProjectResource extends Resource
                     ->required()
                     ->selectablePlaceholder(false)
                     ->helperText('While the company is PAN-only the contract value is the final price the client pays.'),
+                Forms\Components\Toggle::make('share_boq_with_client')
+                    ->label('Show BOQ progress to client')
+                    ->helperText('The client sees each BOQ item\'s quantity done and % complete in their portal. Never rates, costs or profit.')
+                    ->inline(false),
                 Forms\Components\Toggle::make('track_item_costs')
                     ->label('Track cost per BOQ item')
                     ->helperText('For bigger jobs: lets site entries be tagged to BOQ items and shows cost vs earned value per item.')

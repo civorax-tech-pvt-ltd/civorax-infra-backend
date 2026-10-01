@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    // The public Next.js website (civorax-infra): told to refresh cached pages when content changes.
+    'website' => [
+        'url' => env('WEBSITE_URL', 'https://civoraxinfra.com'),
+        'revalidate_secret' => env('WEBSITE_REVALIDATE_SECRET'),
+    ],
+
 ];

@@ -42,6 +42,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->navigationGroups([
                 'CRM',
+                'Website',
                 'Projects',
                 'Site',
                 'Finance',

@@ -15,7 +15,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 #[Fillable([
     'client_id', 'client_type', 'project_type_id', 'title', 'description', 'site_address',
     'city', 'ward_no', 'latitude', 'longitude', 'geofence_radius',
-    'status', 'fee', 'price_basis', 'cost_to_finish_override', 'manual_progress', 'track_item_costs',
+    'status', 'fee', 'price_basis', 'cost_to_finish_override', 'manual_progress', 'track_item_costs', 'share_boq_with_client',
     'start_date', 'estimated_end_date', 'created_by',
 ])]
 class Project extends Model
@@ -92,6 +92,7 @@ class Project extends Model
             'progress' => 'integer',
             'manual_progress' => 'integer',
             'track_item_costs' => 'boolean',
+            'share_boq_with_client' => 'boolean',
             'cost_to_finish_override' => 'decimal:2',
         ];
     }
@@ -407,6 +408,14 @@ class Project extends Model
     public function pettyCashClaims(): HasMany
     {
         return $this->hasMany(PettyCashClaim::class);
+    }
+
+    /**
+     * The latest agreement / contract document shared on this project, if any.
+     */
+    public function agreement(): ?ProjectDocument
+    {
+        return $this->documents()->where('type', 'agreement')->latest('version')->latest('id')->first();
     }
 
     public function variations(): HasMany

@@ -88,6 +88,12 @@ class ViewProject extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('agreement')
+                ->label('Agreement')
+                ->icon('heroicon-o-document-check')
+                ->color('gray')
+                ->visible(fn (): bool => $this->getRecord()->agreement() !== null)
+                ->url(fn (): ?string => $this->getRecord()->agreement()?->url(), shouldOpenInNewTab: true),
             Action::make('makePayment')
                 ->label('Make payment')
                 ->icon('heroicon-o-qr-code')

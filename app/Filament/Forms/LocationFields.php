@@ -16,9 +16,9 @@ use Illuminate\Support\HtmlString;
  */
 class LocationFields
 {
-    public static function make(int $defaultRadius, bool $required = false, string $description = ''): Section
+    public static function make(int $defaultRadius, bool $required = false, string $description = '', string $title = 'Location for attendance', bool $withRadius = true): Section
     {
-        return Section::make('Location for attendance')
+        return Section::make($title)
             ->description($description)
             ->collapsible()
             ->columns(3)
@@ -59,7 +59,8 @@ class LocationFields
                     ->maxValue(5000)
                     ->default($defaultRadius)
                     ->required()
-                    ->suffix('m'),
+                    ->suffix('m')
+                    ->visible($withRadius),
                 Actions::make([
                     Action::make('useCurrentLocation')
                         ->label('Use my current location')

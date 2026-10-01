@@ -46,6 +46,7 @@ class TeamPanelProvider extends PanelProvider
             ])
             ->navigationGroups([
                 'CRM',
+                'Website',
                 'Projects',
                 'Site',
                 'Finance',

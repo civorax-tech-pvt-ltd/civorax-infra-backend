@@ -20,6 +20,10 @@ class ProjectResource extends Resource
 
     protected static ?string $navigationLabel = 'My Projects';
 
+    protected static ?string $navigationGroup = 'Projects';
+
+    protected static ?int $navigationSort = 1;
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
@@ -74,6 +78,7 @@ class ProjectResource extends Resource
             RelationManagers\PaymentSubmissionsRelationManager::class,
             RelationManagers\QuotationsRelationManager::class,
             RelationManagers\SiteReportsRelationManager::class,
+            RelationManagers\WorkProgressRelationManager::class, // 6: only when the admin shares the BOQ
         ];
     }
 

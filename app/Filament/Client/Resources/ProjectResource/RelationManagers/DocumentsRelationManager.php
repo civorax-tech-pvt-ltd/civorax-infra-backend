@@ -2,6 +2,7 @@
 
 namespace App\Filament\Client\Resources\ProjectResource\RelationManagers;
 
+use App\Models\ProjectDocument;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -19,7 +20,9 @@ class DocumentsRelationManager extends RelationManager
             ->recordTitleAttribute('title')
             ->columns([
                 Tables\Columns\TextColumn::make('title'),
-                Tables\Columns\TextColumn::make('type')->badge(),
+                Tables\Columns\TextColumn::make('type')->badge()
+                    ->formatStateUsing(fn (string $state): string => ProjectDocument::TYPES[$state] ?? $state)
+                    ->color(fn (string $state): string => $state === 'agreement' ? 'success' : 'gray'),
                 Tables\Columns\TextColumn::make('version'),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->label('Uploaded'),
             ])
@@ -28,7 +31,7 @@ class DocumentsRelationManager extends RelationManager
                 Tables\Actions\Action::make('download')
                     ->label('Download')
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->url(fn ($record) => \Illuminate\Support\Facades\Storage::url($record->file_path))
+                    ->url(fn ($record) => $record->url())
                     ->openUrlInNewTab(),
             ])
             ->bulkActions([]);

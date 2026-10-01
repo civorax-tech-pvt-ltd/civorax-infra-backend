@@ -3,11 +3,13 @@
 namespace App\Notifications;
 
 use App\Filament\Client\Resources\ProjectResource as ClientProjectResource;
+use App\Filament\Resources\BlogPostResource;
 use App\Filament\Resources\BoqMeasurementResource;
 use App\Filament\Resources\EquipmentEntryResource;
 use App\Filament\Resources\InquiryResource;
 use App\Filament\Resources\MusterRollResource;
 use App\Filament\Resources\PettyCashClaimResource;
+use App\Filament\Resources\PortfolioProjectResource;
 use App\Filament\Resources\ProjectResource;
 use App\Filament\Resources\PurchaseBillResource;
 use App\Filament\Resources\SiteReportResource;
@@ -15,6 +17,7 @@ use App\Filament\Resources\TaskResource;
 use App\Filament\Resources\VariationResource;
 use App\Filament\Resources\WorkOrderResource;
 use App\Filament\Student\Resources\EnrollmentResource as StudentEnrollmentResource;
+use App\Models\BlogPost;
 use App\Models\BoqMeasurement;
 use App\Models\Certificate;
 use App\Models\ClassSession;
@@ -26,6 +29,7 @@ use App\Models\Inquiry;
 use App\Models\MusterRoll;
 use App\Models\Payment;
 use App\Models\PettyCashClaim;
+use App\Models\PortfolioProject;
 use App\Models\Project;
 use App\Models\ProjectDocument;
 use App\Models\ProjectMilestone;
@@ -431,6 +435,74 @@ class Alerts
             BoqMeasurementResource::getUrl(panel: 'team'),
             $approved ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle',
             $approved ? 'success' : 'danger',
+        );
+    }
+
+    public static function blogPostSubmitted(BlogPost $post): void
+    {
+        static::notifySiteApprovers(
+            "Blog post to review: {$post->title}",
+            'Written by '.($post->author_name ?: $post->author?->name ?: 'a team member'),
+            fn (string $panel): string => BlogPostResource::getUrl('edit', ['record' => $post], panel: $panel),
+            'heroicon-o-newspaper',
+            'approve_blog_posts',
+        );
+    }
+
+    public static function blogPostReviewed(BlogPost $post): void
+    {
+        $author = $post->author;
+        $published = $post->status === 'published';
+
+        if ($author === null) {
+            return;
+        }
+
+        $live = $post->published_at === null || $post->published_at->isPast();
+
+        Alert::send(
+            $author,
+            ($published ? ($live ? 'Blog post published: ' : 'Blog post scheduled: ') : 'Changes requested: ').$post->title,
+            $published
+                ? ($live ? 'It is now live on the website.' : 'It goes live on '.$post->published_at->format('M j, Y g:i A').'.')
+                : (string) $post->review_note,
+            BlogPostResource::getUrl('edit', ['record' => $post], panel: $author->hasRole('super_admin') ? 'admin' : 'team'),
+            $published ? 'heroicon-o-check-circle' : 'heroicon-o-pencil-square',
+            $published ? 'success' : 'warning',
+        );
+    }
+
+    public static function portfolioProjectSubmitted(PortfolioProject $project): void
+    {
+        static::notifySiteApprovers(
+            "Our Work project to review: {$project->title}",
+            'Submitted by '.($project->submitter?->name ?? 'a team member'),
+            fn (string $panel): string => PortfolioProjectResource::getUrl('edit', ['record' => $project], panel: $panel),
+            'heroicon-o-photo',
+            'approve_portfolio_projects',
+        );
+    }
+
+    public static function portfolioProjectReviewed(PortfolioProject $project): void
+    {
+        $submitter = $project->submitter;
+
+        if ($submitter === null || (int) $submitter->getKey() === (int) $project->reviewed_by) {
+            return;
+        }
+
+        $published = $project->is_published;
+        $live = $project->published_at === null || $project->published_at->isPast();
+
+        Alert::send(
+            $submitter,
+            ($published ? ($live ? 'Project published: ' : 'Project scheduled: ') : 'Changes requested: ').$project->title,
+            $published
+                ? ($live ? 'It is now live on Our Work.' : 'It goes live on '.$project->published_at->format('M j, Y g:i A').'.')
+                : (string) $project->review_note,
+            PortfolioProjectResource::getUrl('edit', ['record' => $project], panel: $submitter->hasRole('super_admin') ? 'admin' : 'team'),
+            $published ? 'heroicon-o-check-circle' : 'heroicon-o-pencil-square',
+            $published ? 'success' : 'warning',
         );
     }
 
