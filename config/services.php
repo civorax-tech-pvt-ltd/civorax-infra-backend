@@ -41,4 +41,12 @@ return [
         'revalidate_secret' => env('WEBSITE_REVALIDATE_SECRET'),
     ],
 
+    // Where people log in (admin, team, client and student portals), e.g. https://app.civoraxinfra.com.
+    // Empty = the portals answer on any address of this app (local development).
+    'portal' => [
+        'url' => env('PORTAL_URL'),
+        // The admin panel's address (/{admin_path}/login). Kept out of sight: not linked from anywhere.
+        'admin_path' => trim(env('ADMIN_PATH', 'admin'), '/') ?: 'admin',
+    ],
+
 ];

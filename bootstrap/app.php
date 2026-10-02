@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\RedirectToPortalDomain;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,6 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Portal pages opened on the API address move to the portal address (PORTAL_URL).
+        $middleware->prepend(RedirectToPortalDomain::class);
+
         // Pages outside the panels: certificates belong to students, site pages (muster roll print, offline app) to the team.
         $middleware->redirectGuestsTo(fn (Request $request): string => $request->is('certificates/*') ? '/student/login' : '/team/login');
     })

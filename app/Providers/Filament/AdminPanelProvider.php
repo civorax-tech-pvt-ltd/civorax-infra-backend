@@ -32,7 +32,7 @@ class AdminPanelProvider extends PanelProvider
         return $this->applyBranding($panel, Color::Amber, 'Admin')
             ->default()
             ->id('admin')
-            ->path('admin')
+            ->path(config('services.portal.admin_path'))
             ->login(PhoneLogin::class)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')

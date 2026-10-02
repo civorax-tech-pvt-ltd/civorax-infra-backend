@@ -27,6 +27,7 @@ class LoginAccountSection
                     ->unique('users', 'phone', ignorable: fn (?Model $record) => $record?->user),
                 TextInput::make('email')
                     ->label('Email address (optional)')
+                    ->helperText('Needed for "Forgot password": the reset link is emailed here.')
                     ->email()
                     ->maxLength(255)
                     ->unique('users', 'email', ignorable: fn (?Model $record) => $record?->user),

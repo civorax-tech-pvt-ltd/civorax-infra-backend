@@ -43,7 +43,7 @@
     <div
         x-cloak
         x-show="permission === 'default' && ! dismissed"
-        style="position: fixed; right: 1rem; bottom: 1rem; z-index: 40; display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem 0.6rem 1rem; border-radius: 0.9rem; background: rgb(var(--gray-900)); color: #fff; font-size: 0.85rem; box-shadow: 0 12px 30px -10px rgba(0,0,0,0.45);"
+        style="position: fixed; left: 1rem; bottom: 1rem; z-index: 40; display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem 0.6rem 1rem; border-radius: 0.9rem; background: rgb(var(--gray-900)); color: #fff; font-size: 0.85rem; box-shadow: 0 12px 30px -10px rgba(0,0,0,0.45);"
     >
         <span>🔔 Get desktop alerts for important updates?</span>
         <button type="button" x-on:click="enable()" style="padding: 0.35rem 0.75rem; border-radius: 0.6rem; background: rgb(var(--primary-500)); color: #fff; font-weight: 600;">Enable</button>

@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Auth\PhoneLogin;
+use App\Filament\Auth\RequestPasswordResetByPhone;
 use App\Filament\Client\Auth\ClientRegister;
 use App\Filament\Widgets\WelcomeBanner;
 use App\Http\Middleware\EnsureSingleSession;
@@ -33,6 +34,7 @@ class ClientPanelProvider extends PanelProvider
             ->id('client')
             ->path('client')
             ->login(PhoneLogin::class)
+            ->passwordReset(RequestPasswordResetByPhone::class)
             ->registration(ClientRegister::class)
             ->discoverResources(in: app_path('Filament/Client/Resources'), for: 'App\\Filament\\Client\\Resources')
             ->discoverPages(in: app_path('Filament/Client/Pages'), for: 'App\\Filament\\Client\\Pages')

@@ -103,6 +103,27 @@ class ManageCompanySettings extends Page implements HasForms
                             ->required()
                             ->selectablePlaceholder(false),
                     ]),
+                Section::make('Help box ("Need help?")')
+                    ->description('The floating contact box on every client-portal page and on the login / forgot-password pages of all portals. Leave a field empty to hide that line.')
+                    ->columns(2)
+                    ->schema([
+                        Toggle::make('help_enabled')
+                            ->label('Show the help box')
+                            ->default(true)
+                            ->inline(false)
+                            ->columnSpanFull(),
+                        TextInput::make('help_phone')->label('Phone')->tel()->maxLength(50)->placeholder('+977 9761008090'),
+                        TextInput::make('help_whatsapp')
+                            ->label('WhatsApp number')
+                            ->tel()
+                            ->maxLength(30)
+                            ->placeholder('9779761008090')
+                            ->helperText('With country code, no + or spaces.'),
+                        TextInput::make('help_email')->label('Email')->email()->maxLength(255),
+                        TextInput::make('help_website')->label('Website')->url()->maxLength(255),
+                        TextInput::make('help_facebook')->label('Facebook page link')->url()->maxLength(255)->placeholder('https://facebook.com/…'),
+                        TextInput::make('help_hours')->label('Office hours')->maxLength(100)->placeholder('Sun–Fri, 10 AM – 6 PM'),
+                    ]),
                 Placeholder::make('note')
                     ->hiddenLabel()
                     ->content('The system only stores and calculates what these settings say. Confirm VAT and PAN rules with your accountant.'),

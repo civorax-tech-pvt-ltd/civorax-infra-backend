@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Auth\PhoneLogin;
+use App\Filament\Auth\RequestPasswordResetByPhone;
 use App\Filament\Student\Auth\StudentRegister;
 use App\Filament\Widgets\WelcomeBanner;
 use App\Http\Controllers\Student\EnrollController;
@@ -35,6 +36,7 @@ class StudentPanelProvider extends PanelProvider
             ->id('student')
             ->path('student')
             ->login(PhoneLogin::class)
+            ->passwordReset(RequestPasswordResetByPhone::class)
             ->registration(StudentRegister::class)
             ->discoverResources(in: app_path('Filament/Student/Resources'), for: 'App\\Filament\\Student\\Resources')
             ->discoverPages(in: app_path('Filament/Student/Pages'), for: 'App\\Filament\\Student\\Pages')

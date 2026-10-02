@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Auth\PhoneLogin;
+use App\Filament\Auth\RequestPasswordResetByPhone;
 use App\Filament\Widgets\ClientsTrend;
 use App\Filament\Widgets\InquiriesTrend;
 use App\Filament\Widgets\WelcomeBanner;
@@ -37,6 +38,7 @@ class TeamPanelProvider extends PanelProvider
             ->id('team')
             ->path('team')
             ->login(PhoneLogin::class)
+            ->passwordReset(RequestPasswordResetByPhone::class)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
