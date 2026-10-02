@@ -3,6 +3,8 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Auth\PhoneLogin;
+use App\Filament\Widgets\ClientsTrend;
+use App\Filament\Widgets\InquiriesTrend;
 use App\Filament\Widgets\WelcomeBanner;
 use App\Http\Middleware\EnsureSingleSession;
 use App\Http\Middleware\RedirectForeignPanelSession;
@@ -43,6 +45,8 @@ class TeamPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Team/Widgets'), for: 'App\\Filament\\Team\\Widgets')
             ->widgets([
                 WelcomeBanner::class,
+                InquiriesTrend::class,
+                ClientsTrend::class,
             ])
             ->navigationGroups([
                 'CRM',

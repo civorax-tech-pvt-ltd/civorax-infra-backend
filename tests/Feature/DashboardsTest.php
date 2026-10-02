@@ -5,12 +5,15 @@ namespace Tests\Feature;
 use App\Filament\Client\Widgets\ClientProjects;
 use App\Filament\Client\Widgets\ClientStats;
 use App\Filament\Client\Widgets\QuotationsAwaitingResponse;
+use App\Filament\Pages\ManageApprovalSettings;
 use App\Filament\Student\Widgets\MyCourses;
 use App\Filament\Student\Widgets\StudentStats;
 use App\Filament\Student\Widgets\UpcomingClasses;
 use App\Filament\Team\Widgets\MyOpenTasks;
 use App\Filament\Team\Widgets\MyProjects;
 use App\Filament\Team\Widgets\MyWorkStats;
+use App\Filament\Widgets\ClientsTrend;
+use App\Filament\Widgets\InquiriesTrend;
 use App\Filament\Widgets\ProjectStatsOverview;
 use App\Filament\Widgets\WelcomeBanner;
 use App\Models\ClassSession;
@@ -18,6 +21,8 @@ use App\Models\Client;
 use App\Models\ClientType;
 use App\Models\Course;
 use App\Models\Enrollment;
+use App\Models\Inquiry;
+use App\Models\InquiryType;
 use App\Models\Project;
 use App\Models\ProjectType;
 use App\Models\Student;
@@ -26,6 +31,7 @@ use App\Models\TeamMember;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -78,6 +84,49 @@ class DashboardsTest extends TestCase
 
         Livewire::test(WelcomeBanner::class)->assertSee('CivoraX')->assertSee('+ New project');
         Livewire::test(ProjectStatsOverview::class)->assertSee('Active projects')->assertSee('Team present today');
+    }
+
+    public function test_inquiries_chart_counts_each_month_and_keeps_a_running_total(): void
+    {
+        Carbon::setTestNow('2026-10-15 10:00:00');
+        $type = InquiryType::create(['label' => 'House design', 'slug' => 'house-design']);
+        $inquiry = fn (string $date) => Inquiry::create(['fullname' => 'Ram', 'contact' => '9800000001', 'inquiry_type_id' => $type->id, 'contact_channel' => 'phone', 'message' => 'Need a design'])
+            ->forceFill(['created_at' => $date])->saveQuietly();
+
+        $inquiry('2025-01-10'); // before the chart: only in the running total
+        $inquiry('2026-08-03');
+        $inquiry('2026-10-01');
+        $inquiry('2026-10-12');
+
+        $this->actingAs($this->admin);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->assertTrue(InquiriesTrend::canView());
+
+        $chart = Livewire::test(InquiriesTrend::class, ['filter' => '6']);
+        $data = invade($chart->instance())->getData();
+
+        $this->assertSame(['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'], $data['labels']);
+        $this->assertSame([0, 0, 0, 1, 0, 2], $data['datasets'][0]['data']);
+        $this->assertSame([1, 1, 1, 2, 2, 4], $data['datasets'][1]['data']);
+        $chart->assertSee('2 this month · 0 last month');
+
+        $clients = invade(Livewire::test(ClientsTrend::class, ['filter' => '6'])->instance())->getData();
+        $this->assertSame([0, 0, 0, 0, 0, 1], $clients['datasets'][0]['data']); // the client made in setUp()
+
+        // Team dashboard: only roles the admin picks under Approval Settings › Dashboard charts.
+        $role = Role::create(['name' => 'site_supervisor']);
+        $user = User::factory()->create(['phone' => '9833333333']);
+        $user->assignRole($role);
+
+        Livewire::test(ManageApprovalSettings::class)
+            ->fillForm(['view_inquiries_chart' => [$role->id]])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->actingAs($user->fresh());
+        Filament::setCurrentPanel(Filament::getPanel('team'));
+        $this->assertTrue(InquiriesTrend::canView());
+        $this->assertFalse(ClientsTrend::canView());
     }
 
     public function test_team_dashboard_shows_the_members_own_work(): void

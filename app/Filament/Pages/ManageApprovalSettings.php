@@ -56,6 +56,24 @@ class ManageApprovalSettings extends Page implements HasForms
         'approve_blog_posts' => ['Blog posts', 'Publish blog posts directly and approve (or send back) posts submitted by team members.'],
     ];
 
+    /**
+     * Team-dashboard charts and the roles that see them (super admins always see them on the admin dashboard).
+     *
+     * @var array<string, array{0: string, 1: string}>
+     */
+    public const DASHBOARD_CHARTS = [
+        'view_inquiries_chart' => ['Inquiries by month', 'New inquiries each month and the running total.'],
+        'view_clients_chart' => ['Clients by month', 'New clients each month and the running total.'],
+    ];
+
+    /**
+     * @return array<string, array{0: string, 1: string}>
+     */
+    public static function allSettings(): array
+    {
+        return [...self::POWERS, ...self::DASHBOARD_CHARTS];
+    }
+
     public ?array $data = [];
 
     public static function canAccess(): bool
@@ -65,7 +83,7 @@ class ManageApprovalSettings extends Page implements HasForms
 
     public function mount(): void
     {
-        $this->form->fill(collect(self::POWERS)->mapWithKeys(fn (array $power, string $permission): array => [
+        $this->form->fill(collect(static::allSettings())->mapWithKeys(fn (array $power, string $permission): array => [
             $permission => Role::query()
                 ->where('name', '!=', 'super_admin')
                 ->whereHas('permissions', fn ($query) => $query->where('name', $permission))
@@ -94,6 +112,17 @@ class ManageApprovalSettings extends Page implements HasForms
                         ->placeholder('Super admins only'))
                         ->values()
                         ->all()),
+                Section::make('Dashboard charts')
+                    ->description('Which roles see these charts on their team dashboard. Super admins always see them on the admin dashboard.')
+                    ->columns(2)
+                    ->schema(collect(self::DASHBOARD_CHARTS)->map(fn (array $chart, string $permission): Select => Select::make($permission)
+                        ->label($chart[0])
+                        ->helperText($chart[1])
+                        ->options($roles)
+                        ->multiple()
+                        ->placeholder('Nobody on the team dashboard'))
+                        ->values()
+                        ->all()),
             ]);
     }
 
@@ -102,7 +131,7 @@ class ManageApprovalSettings extends Page implements HasForms
         $data = $this->form->getState();
 
         DB::transaction(function () use ($data): void {
-            foreach (array_keys(self::POWERS) as $permission) {
+            foreach (array_keys(static::allSettings()) as $permission) {
                 $permissionModel = Permission::findOrCreate($permission, 'web');
                 $chosen = array_map('intval', $data[$permission] ?? []);
 
