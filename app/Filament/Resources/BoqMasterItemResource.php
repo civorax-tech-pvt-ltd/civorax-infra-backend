@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\BoqMasterItemResource\Pages;
 use App\Filament\Resources\Concerns\SiteAccess;
 use App\Filament\Resources\ProjectResource\RelationManagers\BoqItemsRelationManager;
+use App\Models\BoqCategory;
 use App\Models\BoqMasterItem;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -73,11 +74,33 @@ class BoqMasterItemResource extends Resource
                 ->placeholder('e.g. RCC-01')
                 ->unique(BoqMasterItem::class, 'code', ignoreRecord: true),
             Forms\Components\Select::make('category')
-                ->options(BoqMasterItem::CATEGORIES)
-                ->searchable(),
+                ->options(fn (): array => BoqMasterItem::categoryOptions())
+                ->searchable()
+                ->preload()
+                // Search the saved list on every keystroke, so categories added a moment ago are found too.
+                ->getSearchResultsUsing(fn (string $search): array => BoqCategory::query()
+                    ->where('name', 'like', "%{$search}%")
+                    ->orderBy('sort')
+                    ->limit(50)
+                    ->pluck('name', 'key')
+                    ->all())
+                ->getOptionLabelUsing(fn (?string $value): ?string => BoqMasterItem::categoryLabel($value))
+                ->helperText('Not in the list? Use the + button to add a category (it is saved straight away).')
+                ->createOptionForm([
+                    Forms\Components\TextInput::make('name')
+                        ->label('New category')
+                        ->placeholder('e.g. Tile work')
+                        ->required()
+                        ->maxLength(100),
+                ])
+                ->createOptionModalHeading('Add a BOQ category')
+                // Reuses an existing category typed with different capitals instead of making a duplicate.
+                ->createOptionUsing(fn (array $data): string => BoqCategory::findOrCreateByName($data['name'])->key),
             Forms\Components\Textarea::make('description')
                 ->required()
-                ->rows(2)
+                ->rows(3)
+                ->autosize()
+                ->maxLength(2000)
                 ->live(onBlur: true)
                 ->placeholder('e.g. RCC 1:1.5:3 (M20) in slab including shuttering and curing')
                 ->columnSpanFull(),
@@ -95,12 +118,11 @@ class BoqMasterItemResource extends Resource
                 ->required()
                 ->datalist(BoqMasterItem::UNITS)
                 ->maxLength(20),
-            Forms\Components\TextInput::make($rateField)
+            ($rateField === 'rate' ? BoqItemsRelationManager::rateField() : Forms\Components\TextInput::make($rateField)->numeric()->minValue(0)->prefix('Rs')->required())
                 ->label($rateField === 'default_rate' ? 'Default rate' : 'Rate')
-                ->numeric()
-                ->minValue(0)
-                ->prefix('Rs')
-                ->required(),
+                ->helperText($rateField === 'default_rate'
+                    ? 'Usual rate, pre-filled when the item is added to a project.'
+                    : 'Used for this project and saved as the library rate for next time.'),
             Forms\Components\Toggle::make('rate_includes_vat')
                 ->label('Rate includes supplier VAT')
                 ->helperText('While the company is PAN-only, rates for materials bought on VAT bills include the supplier\'s VAT.')
@@ -142,7 +164,7 @@ class BoqMasterItemResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->withCount('boqItems'))
+            ->modifyQueryUsing(fn (Builder $query) => $query->withCount(['boqItems' => fn (Builder $q) => $q->whereHas('project')]))
             ->columns([
                 Tables\Columns\TextColumn::make('code')
                     ->searchable()
@@ -153,7 +175,7 @@ class BoqMasterItemResource extends Resource
                     ->wrap()
                     ->limit(90),
                 Tables\Columns\TextColumn::make('category')
-                    ->formatStateUsing(fn (?string $state): ?string => BoqMasterItem::CATEGORIES[$state] ?? $state)
+                    ->formatStateUsing(fn (?string $state): ?string => BoqMasterItem::categoryLabel($state))
                     ->badge()
                     ->color('gray')
                     ->placeholder('—'),
@@ -166,6 +188,9 @@ class BoqMasterItemResource extends Resource
                 Tables\Columns\TextColumn::make('boq_items_count')
                     ->label('Used in')
                     ->suffix(' BOQ lines')
+                    ->tooltip(fn (BoqMasterItem $record): ?string => $record->boq_items_count > 0
+                        ? 'In use on a project, so it can\'t be deleted. Deactivate it to hide it from new BOQs, or remove it from those projects first.'
+                        : null)
                     ->sortable(),
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Active')
@@ -175,7 +200,7 @@ class BoqMasterItemResource extends Resource
             ->defaultSort(fn (Builder $query) => $query->orderByDesc('boq_items_count')->orderByDesc('updated_at'))
             ->filters([
                 Tables\Filters\SelectFilter::make('category')
-                    ->options(BoqMasterItem::CATEGORIES),
+                    ->options(fn (): array => BoqMasterItem::categoryOptions()),
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Active')
                     ->default(true),

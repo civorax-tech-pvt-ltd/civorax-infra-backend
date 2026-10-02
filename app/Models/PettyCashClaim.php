@@ -56,14 +56,14 @@ class PettyCashClaim extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logOnlyDirty();
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 
     public static function canBeReviewedBy(?User $user, self $claim): bool
     {
         return $user !== null
             && $user->hasSitePower('approve_petty_cash')
-            && (int) $claim->claimed_by !== (int) $user->getKey();
+            && ((int) $claim->claimed_by !== (int) $user->getKey() || $user->hasRole('super_admin'));
     }
 
     public function approve(User $by, ?string $note = null): void

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * A filter / landing page on the website's "Our Work" (e.g. /our-work/home-concepts).
@@ -14,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 #[Fillable(['name', 'slug', 'description', 'seo_title', 'seo_description', 'sort', 'is_visible'])]
 class PortfolioCategory extends Model
 {
+    use LogsActivity;
+
     /**
      * @var array<string, mixed>
      */
@@ -38,5 +42,10 @@ class PortfolioCategory extends Model
     public function projects(): BelongsToMany
     {
         return $this->belongsToMany(PortfolioProject::class, 'portfolio_category_project');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }

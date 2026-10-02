@@ -5,6 +5,7 @@ namespace App\Filament\Resources\ProjectResource\RelationManagers;
 use App\Filament\Resources\BoqMasterItemResource;
 use App\Models\BoqItem;
 use App\Models\BoqMasterItem;
+use App\Models\BoqSheet;
 use App\Models\KeyMaterial;
 use App\Models\Project;
 use Filament\Forms;
@@ -19,6 +20,7 @@ use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * The project's BOQ: items picked from the master library (or created on the fly into both), their
@@ -48,7 +50,7 @@ class BoqItemsRelationManager extends RelationManager
             ->columns(3)
             ->schema([
                 Forms\Components\TextInput::make('code')->maxLength(50),
-                Forms\Components\TextInput::make('description')->required()->columnSpan(2),
+                Forms\Components\Textarea::make('description')->required()->rows(3)->autosize()->maxLength(2000)->columnSpan(2),
                 ...static::quantityFields(),
                 Forms\Components\Toggle::make('is_variation')
                     ->label('Extra work (variation)')
@@ -86,27 +88,81 @@ class BoqItemsRelationManager extends RelationManager
     /**
      * @return array<Forms\Components\Component>
      */
-    protected static function quantityFields(): array
+    protected static function quantityFields(bool $fromLibrary = false): array
     {
         return [
             Forms\Components\TextInput::make('unit')
                 ->required()
-                ->datalist(BoqMasterItem::UNITS),
+                ->datalist(BoqMasterItem::UNITS)
+                ->helperText($fromLibrary ? 'Filled from the library.' : null),
+            // The library holds what the work is and its usual rate; how much of it is always per project.
             Forms\Components\TextInput::make('quantity')
-                ->label('BOQ quantity')
+                ->label('Quantity for this project')
                 ->numeric()
                 ->minValue(0.001)
-                ->required(),
-            Forms\Components\TextInput::make('rate')
-                ->numeric()
-                ->minValue(0)
-                ->prefix('Rs')
                 ->required()
-                ->helperText('This project\'s own rate. Library changes never alter it.'),
+                ->live(onBlur: true)
+                ->afterStateUpdated(fn (Get $get, Set $set) => static::fillAmount($get, $set))
+                ->helperText('How much of this work this project needs (from the drawings / estimate).'),
+            static::rateField()
+                ->label('Rate for this project')
+                ->helperText($fromLibrary
+                    ? 'Filled from the library rate. Change it only if this project is priced differently; the library is not changed.'
+                    : 'This project\'s own rate. Library changes never alter it.'),
+            static::amountField(),
+            Forms\Components\Toggle::make('rate_includes_vat')
+                ->label('Rate includes supplier VAT')
+                ->inline(false)
+                ->helperText($fromLibrary
+                    ? 'Filled from the library item. While the company is PAN-only, rates for materials bought on VAT bills include the supplier\'s VAT.'
+                    : 'While the company is PAN-only, rates for materials bought on VAT bills include the supplier\'s VAT.'),
             Forms\Components\DatePicker::make('planned_start'),
             Forms\Components\DatePicker::make('planned_end')
                 ->afterOrEqual('planned_start'),
         ];
+    }
+
+    public static function rateField(): Forms\Components\TextInput
+    {
+        return Forms\Components\TextInput::make('rate')
+            ->numeric()
+            ->minValue(0)
+            ->prefix('Rs')
+            ->required()
+            ->live(onBlur: true)
+            ->afterStateUpdated(fn (Get $get, Set $set) => static::fillAmount($get, $set));
+    }
+
+    /**
+     * Amount = quantity × rate, filled in automatically. Typing an amount instead works out the rate
+     * (amount ÷ quantity), for BOQs priced as lump sums per item.
+     */
+    public static function amountField(): Forms\Components\TextInput
+    {
+        return Forms\Components\TextInput::make('amount')
+            ->label('Amount')
+            ->numeric()
+            ->minValue(0)
+            ->prefix('Rs')
+            ->dehydrated(false)
+            ->live(onBlur: true)
+            ->afterStateHydrated(fn (Get $get, Set $set) => static::fillAmount($get, $set))
+            ->afterStateUpdated(function (Get $get, Set $set, $state): void {
+                $quantity = (float) $get('quantity');
+
+                if ($quantity > 0 && is_numeric($state)) {
+                    $set('rate', round((float) $state / $quantity, 2));
+                }
+            })
+            ->helperText('Quantity × rate. Type an amount to work out the rate instead.');
+    }
+
+    public static function fillAmount(Get $get, Set $set): void
+    {
+        $quantity = $get('quantity');
+        $rate = $get('rate');
+
+        $set('amount', is_numeric($quantity) && is_numeric($rate) ? round((float) $quantity * (float) $rate, 2) : null);
     }
 
     public function getTableDescription(): string|Htmlable|null
@@ -137,6 +193,7 @@ class BoqItemsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('description')
                     ->wrap()
                     ->limit(70)
+                    ->tooltip(fn (BoqItem $record): ?string => mb_strlen($record->description) > 70 ? $record->description : null)
                     ->searchable()
                     ->description(fn (BoqItem $record): ?string => $record->is_variation ? 'Extra work (variation)' : null),
                 Tables\Columns\TextColumn::make('quantity')
@@ -144,6 +201,7 @@ class BoqItemsRelationManager extends RelationManager
                     ->formatStateUsing(fn (BoqItem $record): string => static::qty($record->quantity).' '.$record->unit),
                 Tables\Columns\TextColumn::make('rate')
                     ->money('NPR')
+                    ->description(fn (BoqItem $record): ?string => $record->rate_includes_vat ? 'incl. VAT' : null)
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('planned_value')
                     ->label('Amount')
@@ -186,13 +244,20 @@ class BoqItemsRelationManager extends RelationManager
                 $this->addFromLibraryAction(),
                 $this->newItemAction(),
                 $this->copyFromProjectAction(),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\Action::make('exportBoq')
+                        ->label('Export to Excel (CSV)')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->action(fn () => BoqSheet::exportProject($this->getOwnerRecord())),
+                    $this->importBoqAction(),
+                ])->label('Import / export')->icon('heroicon-o-table-cells')->button()->color('gray'),
             ])
             ->actions([
                 $this->measureAction(),
                 Tables\Actions\Action::make('history')
                     ->icon('heroicon-o-clock')
                     ->color('gray')
-                    ->modalHeading(fn (BoqItem $record): string => "Measurements · {$record->description}")
+                    ->modalHeading(fn (BoqItem $record): string => 'Measurements · '.Str::limit($record->description, 80))
                     ->modalWidth('3xl')
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close')
@@ -218,6 +283,7 @@ class BoqItemsRelationManager extends RelationManager
             ->label('Add from library')
             ->icon('heroicon-o-magnifying-glass')
             ->modalWidth('3xl')
+            ->modalDescription('Pick saved work: its description, unit and rate are filled in. You only enter how much this project needs.')
             ->form([
                 Forms\Components\Select::make('master_item_id')
                     ->label('Library item')
@@ -228,7 +294,7 @@ class BoqItemsRelationManager extends RelationManager
                         ->where(fn (Builder $query) => $query
                             ->where('code', 'like', "%{$search}%")
                             ->orWhere('description', 'like', "%{$search}%")
-                            ->orWhere('category', 'like', "%{$search}%"))
+                            ->orWhereHas('boqCategory', fn (Builder $q) => $q->where('name', 'like', "%{$search}%")))
                         ->withCount('boqItems')
                         ->orderByDesc('boq_items_count')
                         ->limit(40)
@@ -241,15 +307,17 @@ class BoqItemsRelationManager extends RelationManager
                         ->mapWithKeys(fn (BoqMasterItem $item): array => [$item->id => $item->label()])->all())
                     ->getOptionLabelUsing(fn ($value): ?string => BoqMasterItem::find($value)?->label())
                     ->live()
-                    ->afterStateUpdated(function (Set $set, $state): void {
+                    ->afterStateUpdated(function (Get $get, Set $set, $state): void {
                         $item = BoqMasterItem::find($state);
                         $set('rate', $item?->default_rate);
                         $set('unit', $item?->unit);
+                        $set('rate_includes_vat', (bool) $item?->rate_includes_vat);
+                        static::fillAmount($get, $set);
                     })
                     ->helperText('Search by code, description or category. Not listed? Use "New item".')
                     ->columnSpanFull(),
                 Forms\Components\Grid::make(3)->schema([
-                    ...static::quantityFields(),
+                    ...static::quantityFields(fromLibrary: true),
                     Forms\Components\Toggle::make('is_variation')
                         ->label('Extra work (variation)')
                         ->inline(false),
@@ -266,6 +334,7 @@ class BoqItemsRelationManager extends RelationManager
                     'unit' => $data['unit'] ?: $master->unit,
                     'quantity' => $data['quantity'],
                     'rate' => $data['rate'],
+                    'rate_includes_vat' => $data['rate_includes_vat'] ?? false,
                     'planned_start' => $data['planned_start'] ?? null,
                     'planned_end' => $data['planned_end'] ?? null,
                     'is_variation' => $data['is_variation'] ?? false,
@@ -284,7 +353,8 @@ class BoqItemsRelationManager extends RelationManager
             ->icon('heroicon-o-plus')
             ->color('gray')
             ->modalWidth('3xl')
-            ->modalDescription('Saved to this project and to the BOQ library at the same time, so it can be picked for later projects.')
+            ->modalHeading('New item (not in the library yet)')
+            ->modalDescription('Only for work that isn\'t in the library. The description, unit and rate are saved to the library for next time, and the item is added to this project with its quantity. Already in the library? Close this and use "Add from library".')
             ->form([
                 Forms\Components\Grid::make(2)->schema(
                     collect(BoqMasterItemResource::itemFields('rate'))
@@ -292,7 +362,8 @@ class BoqItemsRelationManager extends RelationManager
                         ->all(),
                 ),
                 Forms\Components\Grid::make(3)->schema([
-                    ...collect(static::quantityFields())->reject(fn (Forms\Components\Component $field): bool => $field->getName() === 'rate')->all(),
+                    // Rate and its VAT switch are already in the library part of this form.
+                    ...collect(static::quantityFields())->reject(fn (Forms\Components\Component $field): bool => in_array($field->getName(), ['rate', 'rate_includes_vat'], true))->all(),
                     Forms\Components\Toggle::make('is_variation')
                         ->label('Extra work (variation)')
                         ->inline(false),
@@ -317,6 +388,7 @@ class BoqItemsRelationManager extends RelationManager
                         'unit' => $master->unit,
                         'quantity' => $data['quantity'],
                         'rate' => $data['rate'],
+                        'rate_includes_vat' => $master->rate_includes_vat,
                         'planned_start' => $data['planned_start'] ?? null,
                         'planned_end' => $data['planned_end'] ?? null,
                         'is_variation' => $data['is_variation'] ?? false,
@@ -326,6 +398,42 @@ class BoqItemsRelationManager extends RelationManager
                 });
 
                 Notification::make()->title('Added to the BOQ and the library')->success()->send();
+            });
+    }
+
+    protected function importBoqAction(): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make('importBoq')
+            ->label('Import from file')
+            ->icon('heroicon-o-arrow-up-tray')
+            ->modalDescription('Upload a CSV file (in Excel: File › Save As › CSV). Columns: Code, Category, Description, Unit, Quantity, Rate (or Amount), Rate includes supplier VAT, Planned start, Planned end, Variation. Items are matched to the library by code (or by description and unit); ones not in the library are added to it. An item already in this BOQ gets its quantity and rate updated.')
+            ->modalSubmitActionLabel('Import')
+            ->form([
+                Forms\Components\FileUpload::make('file')
+                    ->label('CSV file')
+                    ->acceptedFileTypes(['text/csv', 'text/plain', 'application/vnd.ms-excel', 'application/csv'])
+                    ->storeFiles(false)
+                    ->required(),
+            ])
+            ->extraModalFooterActions([
+                Tables\Actions\Action::make('template')
+                    ->label('Download template')
+                    ->color('gray')
+                    ->action(fn () => BoqSheet::template('project')),
+            ])
+            ->action(function (array $data): void {
+                $result = BoqSheet::importProject($this->getOwnerRecord(), BoqSheet::read($data['file']->getRealPath()), auth()->user());
+
+                Notification::make()
+                    ->title("BOQ imported: {$result['created']} added, {$result['updated']} updated")
+                    ->body(collect([
+                        $result['library'] ? "{$result['library']} new item(s) also saved to the library." : null,
+                        $result['skipped'] ? count($result['skipped']).' skipped · '.implode(' ', array_slice($result['skipped'], 0, 5)) : null,
+                    ])->filter()->implode(' ') ?: null)
+                    ->color($result['skipped'] ? 'warning' : 'success')
+                    ->icon('heroicon-o-arrow-up-tray')
+                    ->persistent()
+                    ->send();
             });
     }
 
@@ -355,7 +463,7 @@ class BoqItemsRelationManager extends RelationManager
                 DB::transaction(function () use ($source, &$next): void {
                     foreach ($source->boqItems as $item) {
                         $this->getOwnerRecord()->boqItems()->create([
-                            ...$item->only(['master_item_id', 'code', 'description', 'unit', 'quantity', 'rate', 'is_variation', 'norms']),
+                            ...$item->only(['master_item_id', 'code', 'description', 'unit', 'quantity', 'rate', 'rate_includes_vat', 'is_variation', 'norms']),
                             'sort' => ++$next,
                             'created_by' => auth()->id(),
                         ]);

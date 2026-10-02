@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * The daily site diary: weather, manpower, work done, photos, issues and tomorrow's plan.
@@ -22,6 +24,8 @@ use Illuminate\Support\Facades\Storage;
 ])]
 class SiteReport extends Model
 {
+    use LogsActivity;
+
     /**
      * @var array<string, string>
      */
@@ -149,5 +153,10 @@ class SiteReport extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }

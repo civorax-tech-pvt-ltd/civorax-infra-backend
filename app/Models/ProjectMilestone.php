@@ -8,11 +8,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 #[Fillable(['project_id', 'title', 'phase', 'sequence', 'target_date', 'completed_at', 'billing_percent', 'status'])]
 class ProjectMilestone extends Model
 {
-    use SoftDeletes;
+    use LogsActivity, SoftDeletes;
 
     /**
      * @var array<string, string>
@@ -155,5 +157,10 @@ class ProjectMilestone extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class, 'milestone_id');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }

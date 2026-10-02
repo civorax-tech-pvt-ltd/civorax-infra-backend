@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * A material tracked by quantity (only a handful: cement, rod, bricks, sand, aggregate …).
@@ -12,6 +14,8 @@ use Illuminate\Database\Eloquent\Model;
 #[Fillable(['name', 'unit', 'is_active', 'sort'])]
 class KeyMaterial extends Model
 {
+    use LogsActivity;
+
     protected function casts(): array
     {
         return ['is_active' => 'boolean'];
@@ -33,5 +37,10 @@ class KeyMaterial extends Model
     public static function options(): array
     {
         return static::query()->active()->get()->mapWithKeys(fn (KeyMaterial $material): array => [$material->id => $material->label()])->all();
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }

@@ -16,7 +16,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * Progress comes only from approved, cumulative measurements of quantity, never from cost.
  */
 #[Fillable([
-    'project_id', 'master_item_id', 'code', 'description', 'unit', 'quantity', 'rate',
+    'project_id', 'master_item_id', 'code', 'description', 'unit', 'quantity', 'rate', 'rate_includes_vat',
     'planned_start', 'planned_end', 'is_variation', 'norms', 'sort', 'created_by',
 ])]
 class BoqItem extends Model
@@ -43,6 +43,7 @@ class BoqItem extends Model
     {
         return [
             'quantity' => 'decimal:3',
+            'rate_includes_vat' => 'boolean',
             'rate' => 'decimal:2',
             'planned_value' => 'decimal:2',
             'planned_start' => 'date',
@@ -54,7 +55,7 @@ class BoqItem extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logOnlyDirty();
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 
     /**

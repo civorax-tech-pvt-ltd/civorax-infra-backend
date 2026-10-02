@@ -342,6 +342,22 @@ class ProjectCostTrackingTest extends TestCase
         $this->assertStringContainsString('12 points ahead', $health['reasons'][0]);
     }
 
+    public function test_spending_in_an_unbudgeted_category_shows_budget_incomplete_instead_of_at_risk(): void
+    {
+        // A materials-only budget, with the money actually spent on labour.
+        $this->budget(['materials' => 700]);
+        $this->project->update(['manual_progress' => 100]);
+        $this->cost('labour', 3200);
+
+        $health = $this->project->refresh()->costReport()->health();
+        $this->assertSame('incomplete', $health['status']);
+        $this->assertStringContainsString('Labour has Rs 3,200.00 spent but no budget', $health['reasons'][0]);
+
+        // Once labour has a budget, the normal comparison is back.
+        $this->budget(['labour' => 5000]);
+        $this->assertSame('green', $this->project->refresh()->costReport()->health()['status']);
+    }
+
     public function test_boq_progress_is_preferred_over_the_manual_percentage(): void
     {
         $this->project->update(['manual_progress' => 90]);

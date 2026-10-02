@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Filament\Client\Resources\ProjectResource as ClientProjectResource;
+use App\Filament\Pages\SiteMaterials;
 use App\Filament\Resources\BlogPostResource;
 use App\Filament\Resources\BoqMeasurementResource;
 use App\Filament\Resources\EquipmentEntryResource;
@@ -26,6 +27,7 @@ use App\Models\CoursePaymentSubmission;
 use App\Models\Enrollment;
 use App\Models\EquipmentEntry;
 use App\Models\Inquiry;
+use App\Models\MaterialIssue;
 use App\Models\MusterRoll;
 use App\Models\Payment;
 use App\Models\PettyCashClaim;
@@ -383,6 +385,55 @@ class Alerts
             fn (string $panel): string => EquipmentEntryResource::getUrl(panel: $panel),
             'heroicon-o-truck',
             'approve_equipment',
+        );
+    }
+
+    public static function equipmentReviewed(EquipmentEntry $entry): void
+    {
+        $approved = $entry->status === 'approved';
+
+        Alert::send(
+            $entry->enteredBy,
+            ($approved ? 'Approved: ' : 'Rejected: ').(EquipmentEntry::KINDS[$entry->kind] ?? 'Equipment').' '.static::money($entry->amount),
+            "{$entry->project->title} · {$entry->description}".($entry->review_note ? " · {$entry->review_note}" : ''),
+            EquipmentEntryResource::getUrl(panel: 'team'),
+            $approved ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle',
+            $approved ? 'success' : 'danger',
+        );
+    }
+
+    public static function variationRejected(Variation $variation): void
+    {
+        Alert::send(
+            $variation->enteredBy,
+            "Extra work rejected: {$variation->title}",
+            $variation->project->title.($variation->review_note ? " · {$variation->review_note}" : ''),
+            VariationResource::getUrl(panel: 'team'),
+            'heroicon-o-x-circle',
+            'danger',
+        );
+    }
+
+    public static function materialIssueSubmitted(MaterialIssue $issue): void
+    {
+        static::notifySiteApprovers(
+            "Material issue to approve: {$issue->material?->name}",
+            "{$issue->project?->title} · ".rtrim(rtrim(number_format((float) $issue->quantity, 2), '0'), '.')." {$issue->material?->unit} to {$issue->boqItem?->description}",
+            fn (string $panel): string => SiteMaterials::getUrl(panel: $panel),
+            'heroicon-o-cube',
+            'approve_boq_measurements',
+        );
+    }
+
+    public static function materialIssueApproved(MaterialIssue $issue): void
+    {
+        Alert::send(
+            $issue->issuer,
+            "Material issue approved: {$issue->material?->name}",
+            "{$issue->project?->title} · ".rtrim(rtrim(number_format((float) $issue->quantity, 2), '0'), '.')." {$issue->material?->unit}",
+            SiteMaterials::getUrl(panel: 'team'),
+            'heroicon-o-check-circle',
+            'success',
         );
     }
 

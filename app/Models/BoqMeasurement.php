@@ -49,17 +49,17 @@ class BoqMeasurement extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logOnlyDirty();
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 
     /**
-     * Approvers are chosen per entry type (Approval Settings); nobody approves their own entry.
+     * Approvers are chosen per entry type (Approval Settings); nobody but a super admin approves their own entry.
      */
     public static function canBeReviewedBy(?User $user, self $measurement): bool
     {
         return $user !== null
             && $user->hasSitePower('approve_boq_measurements')
-            && (int) $measurement->entered_by !== (int) $user->getKey();
+            && ((int) $measurement->entered_by !== (int) $user->getKey() || $user->hasRole('super_admin'));
     }
 
     public function approve(User $by, ?string $note = null): void

@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 #[Fillable([
     'project_id', 'labourer_id', 'date', 'status', 'overtime_hours',
@@ -16,6 +18,8 @@ use Illuminate\Validation\ValidationException;
 ])]
 class LabourAttendance extends Model
 {
+    use LogsActivity;
+
     /**
      * @var array<string, string>
      */
@@ -182,5 +186,10 @@ class LabourAttendance extends Model
     public function marker(): BelongsTo
     {
         return $this->belongsTo(User::class, 'marked_by');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }

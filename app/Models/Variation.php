@@ -50,7 +50,7 @@ class Variation extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logOnlyDirty();
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 
     public function scopeApproved(Builder $query): void
@@ -62,7 +62,7 @@ class Variation extends Model
     {
         return $user !== null
             && $user->hasSitePower('approve_variations')
-            && (int) $variation->entered_by !== (int) $user->getKey();
+            && ((int) $variation->entered_by !== (int) $user->getKey() || $user->hasRole('super_admin'));
     }
 
     public function approve(User $by, ?string $note = null): void
@@ -77,6 +77,8 @@ class Variation extends Model
     {
         $this->ensureReviewer($by);
         $this->forceFill(['status' => 'rejected', 'approved_by' => $by->getKey(), 'approved_at' => now(), 'review_note' => $note])->save();
+
+        Alerts::variationRejected($this);
     }
 
     protected function ensureReviewer(User $by): void

@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * A monthly muster roll for one site in the Nepal format:
@@ -26,6 +28,8 @@ use Illuminate\Validation\ValidationException;
 ])]
 class MusterRoll extends Model
 {
+    use LogsActivity;
+
     /**
      * @var array<string, string>
      */
@@ -408,5 +412,10 @@ class MusterRoll extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }

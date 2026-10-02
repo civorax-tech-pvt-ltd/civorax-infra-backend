@@ -9,11 +9,13 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 #[Fillable(['enrollment_id', 'amount', 'transaction_reference', 'screenshot_path'])]
 class CoursePaymentSubmission extends Model
 {
-    use SoftDeletes;
+    use LogsActivity, SoftDeletes;
 
     protected static function booted(): void
     {
@@ -78,5 +80,10 @@ class CoursePaymentSubmission extends Model
         ])->save();
 
         Alerts::coursePaymentRejected($this);
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }

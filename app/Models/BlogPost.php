@@ -76,7 +76,7 @@ class BlogPost extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logOnlyDirty();
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 
     public static function uniqueSlug(string $source, ?int $ignoreId = null): string

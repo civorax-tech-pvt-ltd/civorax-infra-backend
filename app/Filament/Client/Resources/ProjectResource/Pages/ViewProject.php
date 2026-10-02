@@ -85,6 +85,21 @@ class ViewProject extends ViewRecord
             ]);
     }
 
+    /**
+     * @return array<int, string>
+     */
+    protected function billableMilestoneOptions(): array
+    {
+        return $this->record->milestones()
+            ->where('billing_percent', '>', 0)
+            ->orderBy('sequence')
+            ->get()
+            ->mapWithKeys(fn (ProjectMilestone $milestone): array => [
+                $milestone->id => $milestone->title.' — NPR '.number_format((float) $milestone->amountLeft(), 2).' left',
+            ])
+            ->all();
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -102,16 +117,11 @@ class ViewProject extends ViewRecord
                 ->modalDescription('Pay using the details below, then enter the transaction reference so we can verify it.')
                 ->modalContent(fn () => view('filament.modals.payment-qr'))
                 ->form([
+                    // Only milestones that carry a share of the fee can be paid against; without any, the field is hidden.
                     Select::make('milestone_id')
                         ->label('For milestone (optional)')
-                        ->options(fn (): array => $this->record->milestones()
-                            ->where('billing_percent', '>', 0)
-                            ->orderBy('sequence')
-                            ->get()
-                            ->mapWithKeys(fn (ProjectMilestone $milestone): array => [
-                                $milestone->id => $milestone->title.' — NPR '.number_format((float) $milestone->amountLeft(), 2).' left',
-                            ])
-                            ->all())
+                        ->options(fn (): array => $this->billableMilestoneOptions())
+                        ->visible(fn (): bool => $this->billableMilestoneOptions() !== [])
                         ->in(fn (): array => $this->record->milestones()->pluck('id')->all())
                         ->live()
                         ->afterStateUpdated(function (Set $set, $state): void {

@@ -2,7 +2,7 @@
     @php
         $rows = $this->rows();
         $rs = fn (float $amount): string => 'Rs '.number_format($amount);
-        $health = ['green' => ['#dcfce7', '#166534', 'On track'], 'amber' => ['#fef3c7', '#92400e', 'Watch'], 'red' => ['#fee2e2', '#991b1b', 'At risk'], 'unknown' => ['#f3f4f6', '#374151', 'No budget']];
+        $health = ['green' => ['#dcfce7', '#166534', 'On track'], 'amber' => ['#fef3c7', '#92400e', 'Watch'], 'red' => ['#fee2e2', '#991b1b', 'At risk'], 'unknown' => ['#f3f4f6', '#374151', 'No budget'], 'incomplete' => ['#fef3c7', '#92400e', 'Budget incomplete']];
         $totalContract = $rows->sum('contract');
         $totalProfit = $rows->sum('profit');
         $losing = $rows->filter(fn ($r) => $r['profit'] < 0)->count();

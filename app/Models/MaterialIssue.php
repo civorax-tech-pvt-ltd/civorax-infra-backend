@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\Alerts;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -38,6 +39,12 @@ class MaterialIssue extends Model
 
             $issue->value = round((float) $issue->quantity * (float) $issue->rate, 2);
         });
+
+        static::created(function (MaterialIssue $issue): void {
+            if ($issue->status === 'pending') {
+                Alerts::materialIssueSubmitted($issue);
+            }
+        });
     }
 
     protected function casts(): array
@@ -53,7 +60,7 @@ class MaterialIssue extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logOnlyDirty();
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 
     public function scopeApproved(Builder $query): void
@@ -65,7 +72,7 @@ class MaterialIssue extends Model
     {
         return $user !== null
             && $user->hasSitePower('approve_boq_measurements')
-            && (int) $issue->issued_by !== (int) $user->getKey();
+            && ((int) $issue->issued_by !== (int) $user->getKey() || $user->hasRole('super_admin'));
     }
 
     public function approve(User $by): void
@@ -77,6 +84,13 @@ class MaterialIssue extends Model
         }
 
         $this->forceFill(['status' => 'approved', 'approved_by' => $by->getKey(), 'approved_at' => now()])->save();
+
+        Alerts::materialIssueApproved($this);
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 
     public function boqItem(): BelongsTo

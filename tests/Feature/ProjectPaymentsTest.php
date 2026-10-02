@@ -219,6 +219,25 @@ class ProjectPaymentsTest extends TestCase
         $this->assertDatabaseCount('jobs', 0);
     }
 
+    public function test_the_milestone_choice_only_shows_when_a_milestone_carries_a_billing_share(): void
+    {
+        $this->project->update(['fee' => 100000]);
+        $this->project->milestones()->create(['title' => 'Construction Project', 'sequence' => 1, 'billing_percent' => 0, 'status' => 'completed']);
+
+        $this->actAsClient();
+
+        Livewire::test(ViewProject::class, ['record' => $this->project->getRouteKey()])
+            ->mountAction('makePayment')
+            ->assertFormFieldIsHidden('milestone_id', 'mountedActionForm');
+
+        $this->project->milestones()->create(['title' => 'Foundation', 'sequence' => 2, 'billing_percent' => 20, 'status' => 'pending']);
+
+        Livewire::test(ViewProject::class, ['record' => $this->project->getRouteKey()])
+            ->mountAction('makePayment')
+            ->assertFormFieldIsVisible('milestone_id', 'mountedActionForm')
+            ->assertSee('Foundation — NPR 20,000.00 left');
+    }
+
     public function test_the_make_payment_button_is_hidden_until_a_fee_is_agreed(): void
     {
         $this->actAsClient();

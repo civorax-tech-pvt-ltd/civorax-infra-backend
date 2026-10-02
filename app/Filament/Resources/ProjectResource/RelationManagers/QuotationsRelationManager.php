@@ -11,6 +11,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class QuotationsRelationManager extends RelationManager
 {
@@ -49,7 +50,7 @@ class QuotationsRelationManager extends RelationManager
                         Forms\Components\TextInput::make('description')
                             ->required()
                             ->maxLength(255)
-                            ->columnSpan(5),
+                            ->columnSpan(4),
                         Forms\Components\TextInput::make('quantity')
                             ->numeric()
                             ->minValue(0)
@@ -71,8 +72,8 @@ class QuotationsRelationManager extends RelationManager
                             ->columnSpan(2),
                         Forms\Components\Placeholder::make('line_amount')
                             ->label('Amount')
-                            ->content(fn (Get $get): string => number_format(static::lineAmount($get), 2))
-                            ->columnSpan(1),
+                            ->content(fn (Get $get): HtmlString => new HtmlString('<span style="white-space:nowrap;font-weight:600">'.number_format(static::lineAmount($get), 2).'</span>'))
+                            ->columnSpan(2),
                     ]),
                 Forms\Components\TextInput::make('discount')
                     ->numeric()
@@ -142,6 +143,7 @@ class QuotationsRelationManager extends RelationManager
             ->headerActions([
                 Tables\Actions\CreateAction::make()
                     ->label('New quotation')
+                    ->modalWidth('5xl')
                     ->after(fn (Quotation $record) => $record->recalculateTotals()),
             ])
             ->actions([
@@ -178,8 +180,10 @@ class QuotationsRelationManager extends RelationManager
                         Notification::make()->title('Acceptance undone — project fee updated')->success()->send();
                     }),
                 Tables\Actions\ViewAction::make()
+                    ->modalWidth('5xl')
                     ->visible(fn (Quotation $record): bool => in_array($record->status, ['accepted', 'superseded'], true)),
                 Tables\Actions\EditAction::make()
+                    ->modalWidth('5xl')
                     ->visible(fn (Quotation $record): bool => ! in_array($record->status, ['accepted', 'superseded'], true))
                     ->after(fn (Quotation $record) => $record->recalculateTotals()),
                 Tables\Actions\DeleteAction::make()

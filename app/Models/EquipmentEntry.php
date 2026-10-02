@@ -70,7 +70,7 @@ class EquipmentEntry extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logOnlyDirty();
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 
     public function scopeApproved(Builder $query): void
@@ -82,19 +82,23 @@ class EquipmentEntry extends Model
     {
         return $user !== null
             && $user->hasSitePower('approve_equipment')
-            && (int) $entry->entered_by !== (int) $user->getKey();
+            && ((int) $entry->entered_by !== (int) $user->getKey() || $user->hasRole('super_admin'));
     }
 
     public function approve(User $by, ?string $note = null): void
     {
         $this->ensureReviewer($by);
         $this->forceFill(['status' => 'approved', 'approved_by' => $by->getKey(), 'approved_at' => now(), 'review_note' => $note])->save();
+
+        Alerts::equipmentReviewed($this);
     }
 
     public function reject(User $by, string $note): void
     {
         $this->ensureReviewer($by);
         $this->forceFill(['status' => 'rejected', 'approved_by' => $by->getKey(), 'approved_at' => now(), 'review_note' => $note])->save();
+
+        Alerts::equipmentReviewed($this);
     }
 
     protected function ensureReviewer(User $by): void

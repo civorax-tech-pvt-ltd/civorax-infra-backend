@@ -10,7 +10,22 @@
 <div
     x-data="{
         open: false,
+        timer: null,
+        // The panel navigates without full page loads, so this component is rebuilt on every page:
+        // stop the old timer, and only check right away if the last check is older than the interval.
+        init() {
+            const every = {{ \App\Livewire\AttendanceTracker::INTERVAL_SECONDS * 1000 }};
+            const last = Number(sessionStorage.getItem('cx-attendance-last') || 0);
+
+            if (Date.now() - last >= every) this.send();
+            this.timer = setInterval(() => this.send(), every);
+        },
+        destroy() {
+            clearInterval(this.timer);
+        },
         send() {
+            sessionStorage.setItem('cx-attendance-last', String(Date.now()));
+
             if (! window.isSecureContext || ! navigator.geolocation) {
                 $wire.locationUnavailable('Location needs a secure (https) connection');
                 return;
@@ -23,7 +38,6 @@
             );
         },
     }"
-    x-init="send(); setInterval(() => send(), {{ \App\Livewire\AttendanceTracker::INTERVAL_SECONDS * 1000 }})"
     x-on:click="open = ! open; send()"
     title="{{ $message }} (tap to check again)"
     role="button"

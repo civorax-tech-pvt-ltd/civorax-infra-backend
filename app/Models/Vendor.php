@@ -9,11 +9,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 #[Fillable(['name', 'vendor_type', 'contact', 'pan_vat_no', 'address', 'created_by'])]
 class Vendor extends Model
 {
-    use SoftDeletes;
+    use LogsActivity, SoftDeletes;
 
     public function creator(): BelongsTo
     {
@@ -122,5 +124,10 @@ class Vendor extends Model
         $paid = round(array_sum(array_column($rows, 'paid')), 2);
 
         return ['opening' => $opening, 'rows' => $rows, 'billed' => $billed, 'paid' => $paid, 'closing' => round($opening + $billed - $paid, 2)];
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }

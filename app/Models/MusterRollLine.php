@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * One labourer's row on a muster roll (Part I). Days maps the day number to P, H or A (+ overtime hours).
@@ -15,6 +17,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 ])]
 class MusterRollLine extends Model
 {
+    use LogsActivity;
+
     protected function casts(): array
     {
         return [
@@ -34,5 +38,10 @@ class MusterRollLine extends Model
     public function labourer(): BelongsTo
     {
         return $this->belongsTo(Labourer::class)->withTrashed();
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }

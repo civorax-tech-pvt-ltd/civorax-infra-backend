@@ -10,6 +10,7 @@
         'amber' => ['#fef3c7', '#92400e', 'Watch'],
         'red' => ['#fee2e2', '#991b1b', 'At risk'],
         'unknown' => ['#f3f4f6', '#374151', 'Not enough data'],
+        'incomplete' => ['#fef3c7', '#92400e', 'Budget incomplete'],
     ][$health['status']];
     $profit = $report->projectedProfit();
     $finalVsBudget = $report->projectedFinalCost() - $report->budgetTotal();

@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * A vendor's signed confirmation of the balance on a date (typically at fiscal year end).
@@ -12,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['vendor_id', 'as_of', 'balance', 'agreed', 'note', 'document_path', 'recorded_by'])]
 class VendorBalanceConfirmation extends Model
 {
+    use LogsActivity;
+
     protected function casts(): array
     {
         return [
@@ -29,5 +33,10 @@ class VendorBalanceConfirmation extends Model
     public function recorder(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }

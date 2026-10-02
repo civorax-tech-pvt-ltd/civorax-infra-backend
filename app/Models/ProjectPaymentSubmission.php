@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * A payment a client reports from their portal; it becomes a Payment once staff verify it.
@@ -18,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 #[Fillable(['project_id', 'milestone_id', 'amount', 'transaction_reference', 'screenshot_path', 'submitted_by'])]
 class ProjectPaymentSubmission extends Model
 {
-    use SoftDeletes;
+    use LogsActivity, SoftDeletes;
 
     /**
      * @var array<string, string>
@@ -128,5 +130,10 @@ class ProjectPaymentSubmission extends Model
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }

@@ -32,6 +32,15 @@ trait AppliesBranding
                 'success' => Color::Emerald,
                 'warning' => Color::Amber,
             ])
+            // Page changes swap the content in place (no full browser reload). Print pages, the offline
+            // site app, certificates and uploaded files are full pages of their own, so they load normally.
+            ->spa()
+            ->spaUrlExceptions(fn (): array => [
+                url('/site/*'),
+                url('/certificates/*'),
+                url('/verify/*'),
+                url('/storage/*'),
+            ])
             ->sidebarCollapsibleOnDesktop()
             ->maxContentWidth(MaxWidth::Full)
             ->databaseNotifications()

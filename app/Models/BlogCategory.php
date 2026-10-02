@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * A blog category (website /blog/category/{slug}).
@@ -14,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['name', 'slug', 'description', 'seo_title', 'seo_description', 'sort', 'is_visible'])]
 class BlogCategory extends Model
 {
+    use LogsActivity;
+
     /**
      * @var array<string, mixed>
      */
@@ -38,5 +42,10 @@ class BlogCategory extends Model
     public function posts(): HasMany
     {
         return $this->hasMany(BlogPost::class);
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }

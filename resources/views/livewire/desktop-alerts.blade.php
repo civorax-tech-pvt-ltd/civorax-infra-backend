@@ -3,13 +3,20 @@
         storageKey: 'cx-desktop-alerts-{{ auth()->id() }}',
         permission: ('Notification' in window) ? Notification.permission : 'unsupported',
         dismissed: false,
+        timer: null,
+        // Rebuilt on every page of the single-page panel: one timer at a time, and no extra check
+        // when the last one was less than 30 seconds ago.
         init() {
             if (! window.isSecureContext || this.permission === 'unsupported') { this.permission = 'unsupported'; return; }
             this.dismissed = localStorage.getItem(this.storageKey + '-dismissed') === '1';
-            this.poll();
-            setInterval(() => this.poll(), 30000);
+            if (Date.now() - Number(sessionStorage.getItem(this.storageKey + '-polled') || 0) >= 30000) this.poll();
+            this.timer = setInterval(() => this.poll(), 30000);
+        },
+        destroy() {
+            clearInterval(this.timer);
         },
         async poll() {
+            sessionStorage.setItem(this.storageKey + '-polled', String(Date.now()));
             const since = localStorage.getItem(this.storageKey);
             const result = await $wire.check(since);
             localStorage.setItem(this.storageKey, result.now);

@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * Letterhead and signatures printed on every certificate (a single row, edited under Academy › Certificate Settings).
@@ -15,6 +17,8 @@ use Illuminate\Support\Facades\Storage;
 ])]
 class CertificateSetting extends Model
 {
+    use LogsActivity;
+
     protected function casts(): array
     {
         return ['show_name_with_logo' => 'boolean'];
@@ -115,5 +119,10 @@ class CertificateSetting extends Model
         $disk->put($trimmedPath, ob_get_clean());
 
         return $trimmedPath;
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }

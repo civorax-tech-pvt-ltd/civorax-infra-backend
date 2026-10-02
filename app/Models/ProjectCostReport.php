@@ -241,6 +241,18 @@ class ProjectCostReport
             return ['status' => $status === 'red' ? 'red' : 'unknown', 'reasons' => $reasons];
         }
 
+        // Spending in categories without a budget makes "% of budget spent" meaningless (e.g. Rs 3,200 of labour
+        // against a Rs 700 materials-only budget reads as 457 %), so ask for the budget instead of raising an alarm.
+        $unbudgeted = collect($this->categories())->where('flag', 'unbudgeted');
+
+        if ($unbudgeted->isNotEmpty()) {
+            $reasons[] = 'Budget incomplete: '.$unbudgeted
+                ->map(fn (array $category): string => $category['label'].' has Rs '.number_format($category['actual'], 2).' spent but no budget')
+                ->implode('; ').'. Add '.($unbudgeted->count() === 1 ? 'its budget' : 'their budgets').' under Costs › Budget to compare spending with progress.';
+
+            return ['status' => $status === 'red' ? 'red' : 'incomplete', 'reasons' => $reasons];
+        }
+
         $gap = round($spent - $done, 1);
 
         if ($gap > 10) {

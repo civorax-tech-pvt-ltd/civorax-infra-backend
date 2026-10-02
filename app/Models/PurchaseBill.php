@@ -99,7 +99,7 @@ class PurchaseBill extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logOnlyDirty();
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 
     public function scopeApproved(Builder $query): void
@@ -169,7 +169,7 @@ class PurchaseBill extends Model
     {
         return $user !== null
             && $user->hasSitePower('approve_purchase_bills')
-            && (int) $bill->entered_by !== (int) $user->getKey()
+            && ((int) $bill->entered_by !== (int) $user->getKey() || $user->hasRole('super_admin'))
             && (! $bill->isFlagged() || $user->hasRole('super_admin'));
     }
 

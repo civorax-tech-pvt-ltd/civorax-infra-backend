@@ -17,7 +17,7 @@ use Spatie\Permission\PermissionRegistrar;
 
 /**
  * Choose which roles approve each kind of entry. Approval checks read these permissions, so who approves
- * can change later without code changes. Super admins can always approve; nobody approves their own entry.
+ * can change later without code changes. Super admins can always approve (even their own entries); nobody else approves their own entry.
  */
 class ManageApprovalSettings extends Page implements HasForms
 {
@@ -84,7 +84,7 @@ class ManageApprovalSettings extends Page implements HasForms
             ->statePath('data')
             ->schema([
                 Section::make('Who approves what')
-                    ->description('Super admins can always approve. The person who entered something can never approve it themselves.')
+                    ->description('Super admins can always approve, including their own entries. Anyone else who entered something can never approve it themselves.')
                     ->columns(2)
                     ->schema(collect(self::POWERS)->map(fn (array $power, string $permission): Select => Select::make($permission)
                         ->label($power[0])

@@ -7,11 +7,13 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 #[Fillable(['course_id', 'starts_at', 'ends_at', 'status', 'meeting_url', 'recording_url', 'note', 'created_by'])]
 class ClassSession extends Model
 {
-    use SoftDeletes;
+    use LogsActivity, SoftDeletes;
 
     protected static function booted(): void
     {
@@ -38,5 +40,10 @@ class ClassSession extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }

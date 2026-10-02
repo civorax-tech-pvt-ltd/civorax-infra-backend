@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * Part III of a muster roll: work performed, with its Measurement Book page reference.
@@ -12,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['muster_roll_id', 'labourer_id', 'description', 'quantity', 'unit', 'mb_ref', 'remarks', 'sort'])]
 class MusterRollWork extends Model
 {
+    use LogsActivity;
+
     protected function casts(): array
     {
         return ['quantity' => 'decimal:2'];
@@ -25,5 +29,10 @@ class MusterRollWork extends Model
     public function labourer(): BelongsTo
     {
         return $this->belongsTo(Labourer::class)->withTrashed();
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 }

@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Work measured on site against BOQ items. Engineers enter; roles given "approve_boq_measurements" approve
- * (never their own entry). Only approved measurements count towards progress.
+ * (never their own entry, except super admins). Only approved measurements count towards progress.
  */
 class BoqMeasurementResource extends Resource
 {

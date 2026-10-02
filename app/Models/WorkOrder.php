@@ -61,7 +61,7 @@ class WorkOrder extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logOnlyDirty();
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 
     public function scopeOpen(Builder $query): void
@@ -99,7 +99,7 @@ class WorkOrder extends Model
     {
         return $user !== null
             && $user->hasSitePower('approve_work_orders')
-            && (int) $order->entered_by !== (int) $user->getKey();
+            && ((int) $order->entered_by !== (int) $user->getKey() || $user->hasRole('super_admin'));
     }
 
     public function approve(User $by, ?string $note = null): void
